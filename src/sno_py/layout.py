@@ -60,10 +60,8 @@ class SnoLayout:
                 content=HSplit([
                     Window(
                         BufferControl(
-                            lexer=DynamicLexer(
-                                lambda: PygmentsLexer.from_filename(
-                                    self.editor.active_buffer.display_name)
-                            ),
+                            lexer=PygmentsLexer.from_filename(
+                                    self.editor.active_buffer.display_name),
                             include_default_input_processors=False,
                             input_processors=[
                                 ShowTrailingWhiteSpaceProcessor(),
