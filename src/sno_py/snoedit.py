@@ -1,4 +1,11 @@
 import os
+import asyncio
+
+import xonsh.built_ins
+import xonsh.execer
+import xonsh.imphooks
+import xonsh.environ
+
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Optional
@@ -14,8 +21,6 @@ from prompt_toolkit.styles import Style, merge_styles
 from prompt_toolkit.styles.pygments import style_from_pygments_cls
 from pygments.styles import get_style_by_name
 from pygments.token import String
-from xonsh.built_ins import get_default_builtins
-from xonsh.execer import Execer
 
 from sno_py.bindings import SnoBinds
 from sno_py.buffer import DebugBuffer, FileBuffer, LogBuffer, SnooBuffer
@@ -24,6 +29,7 @@ from sno_py.snocommand import SnoCommand
 from sno_py.strings import get_string
 from sno_py.color_utils import adjust_color_brightness
 
+from asyncer import asyncify
 
 class SnoEdit(object):
     def __init__(self) -> None:
@@ -54,39 +60,21 @@ class SnoEdit(object):
         self.layout = SnoLayout(self)
 
         self.colorscheme = "monokai"
-        self.pygments_class = get_style_by_name(self.colorscheme)
-        self.style: Style = style_from_pygments_cls(self.pygments_class)
+        self.pygments_class = None 
+        self.style: Style = None 
 
         self.show_line_numbers = True
         self.show_relative_numbers = True
         self.expand_tab = True
         self.tabstop = 4
         self.display_unprintable_characters = True
-
-        self.builtinsx = get_default_builtins(Execer())
-        self._load_snorc()
-
-        self._style_extra = Style.from_dict(
-            {
-                "background": f"bg:{self.pygments_class.background_color}",
-                "container": f"bg:{adjust_color_brightness(self.pygments_class.background_color, 1.2)}",
-                "completion-menu": f"bg:{adjust_color_brightness(self.pygments_class.background_color, 1.2)} {self.pygments_class.styles[String]}",
-                "search": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
-                "selected": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
-                "completion-menu.completion.current": f"{self.pygments_class.highlight_color}",
-            }
-        )
-
-        self.style = merge_styles(
-            [
-                self.style,
-                self._style_extra
-            ]
-        )
-
-        self.app = Application(layout=self.layout.layout, style=self.style,
-                               key_bindings=self.bindings, full_screen=True, editing_mode=EditingMode.VI)
-
+        
+        execer = xonsh.execer.Execer()
+        xonsh.built_ins.XSH.load(execer=execer, inherit_env=True)
+        xonsh.imphooks.install_import_hooks(execer=execer) 
+ 
+        self.app: Application = None
+        
     async def enter_command_mode(self) -> None:
         self.app.layout.focus(self.command_buffer)
         self.app.vi_state.input_mode = InputMode.INSERT
@@ -108,9 +96,42 @@ class SnoEdit(object):
 
     async def run(self) -> None:
         def pre_run() -> None:
-            self.app.vi_state.input_mode = InputMode.NAVIGATION
+            self.app.vi_state.input_mode = InputMode.NAVIGATION 
+        
+        await self._load_snorc_async()
+        
+        self._setup_styles()
+        
+        self.app = Application(layout=self.layout.layout, style=self.style,
+                               key_bindings=self.bindings, full_screen=True, editing_mode=EditingMode.VI)
+        
         await self.app.run_async(pre_run=pre_run)
+    
+    def _setup_styles(self):
+        if not self.pygments_class:
+            self.pygments_class = get_style_by_name(self.colorscheme)
+        if not self.style:
+            self.style = style_from_pygments_cls(self.pygments_class)
+            
+            self._style_extra = Style.from_dict(
+                {
+                    "background": f"bg:{self.pygments_class.background_color}",
+                    "container": f"bg:{adjust_color_brightness(self.pygments_class.background_color, 1.2)}",
+                    "completion-menu": f"bg:{adjust_color_brightness(self.pygments_class.background_color, 1.2)} {self.pygments_class.styles[String]}",
+                    "search": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
+                    "selected": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
+                    "completion-menu.completion.current": f"{self.pygments_class.highlight_color}",
+                }
+            )
 
+            self.style = merge_styles(
+                [
+                    self.style,
+                    self._style_extra
+                ]
+            ) 
+        
+    
     def log(self, text: str) -> None:
         self.log_handler.write(text)
         self.app.layout.focus(self.log_buffer)
@@ -203,11 +224,15 @@ class SnoEdit(object):
                 break
 
     def refresh_layout(self) -> None:
-        self.app.layout = self.layout.layout
+        if self.app:
+            self.app.layout = self.layout.layout
 
     def _load_snorc(self) -> None:
         if os.path.isfile(self.home_dir / ".snorc"):
             with open(self.home_dir / ".snorc") as rc:
                 with redirect_stdout(self.debug_buffer):
                     with redirect_stderr(self.debug_buffer):
-                        self.builtinsx.execx(rc.read(), glbs={"snoedit": self})
+                        xonsh.built_ins.XSH.builtins.execx(rc.read(), glbs={"editor": self})
+    
+    async def _load_snorc_async(self) -> None:
+        await asyncify(self._load_snorc)()

@@ -1,5 +1,5 @@
 
-editor.colorscheme = $(echo monokai)
+editor.colorscheme = $(echo a)
 
 editor.show_line_numbers = True
 editor.show_relative_numbers = True

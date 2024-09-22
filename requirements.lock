@@ -10,10 +10,16 @@
 #   universal: false
 
 -e file:.
+anyio==4.6.0
+    # via asyncer
 appdirs==1.4.4
+    # via sno-py
+asyncer==0.0.8
     # via sno-py
 distro==1.9.0
     # via xonsh
+idna==3.10
+    # via anyio
 prompt-toolkit==3.0.47
     # via sno-py
     # via xonsh
@@ -22,7 +28,11 @@ pygments==2.18.0
     # via xonsh
 pyperclip==1.9.0
     # via xonsh
+sniffio==1.3.1
+    # via anyio
 strenum==0.4.15
+    # via sno-py
+typing-extensions==4.12.2
     # via sno-py
 ujson==5.10.0
     # via xonsh
