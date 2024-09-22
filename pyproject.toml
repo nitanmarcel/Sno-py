@@ -1,0 +1,33 @@
+[project]
+name = "sno-py"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "Marcel Alexandru Nitan", email = "nitan.marcel@protonmail.com" }
+]
+dependencies = [
+    "prompt-toolkit>=3.0.47",
+    "pygments>=2.18.0",
+    "appdirs>=1.4.4",
+    "xonsh[full]>=0.18.3",
+    "strenum>=0.4.15",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[project.scripts]
+"sno-py" = "sno_py:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sno_py"]
