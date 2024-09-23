@@ -1,39 +1,50 @@
 import ast
 import inspect
-import re
-from contextlib import redirect_stderr, redirect_stdout
 
 from prompt_toolkit.completion import PathCompleter, WordCompleter
 from prompt_toolkit.contrib.regular_languages.compiler import compile
 from prompt_toolkit.contrib.regular_languages.completion import \
     GrammarCompleter
 
+from sno_py import redirect
 
+@redirect.debug_stderr
+@redirect.debug_stdout
 def q(editor, *args, **kwargs):
     if "force" in kwargs:
         return editor.close_current_buffer(forced=True)
     return editor.close_current_buffer()
 
 
+@redirect.debug_stderr
+@redirect.debug_stdout
 def qa(editor, *args, **kwargs):
     if "force" in kwargs:
         return editor.close_all_buffers(forced=True)
     return editor.close_all_buffers()
 
 
+@redirect.debug_stderr
+@redirect.debug_stdout
 def w(editor, *args, **kwargs) -> None:
     editor.save_current_buffer()
 
 
+@redirect.debug_stderr
+@redirect.debug_stdout
 def wa(editor, *args, **kwargs) -> None:
     editor.save_all_buffers()
 
 
+@redirect.debug_stderr
+@redirect.debug_stdout
 def o(editor, *args, **kwargs) -> None:
     for arg in args:
         editor.create_file_buffer(arg, **kwargs)
 
 
+@redirect.debug_stderr
+@redirect.debug_stdout
 def o_completion_handler(editor, args: list):
     return GrammarCompleter(
         compile("o\s+(?P<path>\S+)"),
@@ -43,15 +54,23 @@ def o_completion_handler(editor, args: list):
     )
 
 
+@redirect.debug_stderr
+@redirect.debug_stdout
 def buffer(editor, *args, **kwargs) -> None:
     if (args):
         editor.select_buffer(display_name=args[0])
 
 
+@redirect.debug_stderr
+@redirect.debug_stdout
 def buffer_completion_handler(editor, args: list):
     return WordCompleter([b.display_name for b in editor.buffers])
 
-
+@redirect.log_stderr
+@redirect.log_stdout
+async def execx(editor, *args, **kwargs) -> None:
+    await editor.aexecx(kwargs["_raw"])
+    
 class SnoCommand:
     def __init__(self, editor) -> None:
         self._editor = editor
@@ -75,22 +94,21 @@ class SnoCommand:
             if len(split) > 1:
                 cmd, rest = split
                 args, kwargs = self._parse_args_kwargs(rest)
-            if cmd.endswith("!"):
+            if cmd.endswith("!") and len(cmd) > 1:
                 kwargs["force"] = True
                 cmd = cmd[:-1]
             if cmd in self._handlers:
-                with redirect_stdout(self._editor.debug_buffer):
-                    with redirect_stderr(self._editor.debug_buffer):
-                        func = self._handlers[cmd]
-                        if isinstance(func, list):
-                            for f in func:
-                                result = f(self._editor, *args, **kwargs)
-                                if inspect.isawaitable(result):
-                                    await result
-                        else:
-                            result = func(self._editor, *args, **kwargs)
-                            if inspect.isawaitable(result):
-                                await result
+                kwargs["_raw"] = split[-1] if len(args) > 0 else ""
+                func = self._handlers[cmd]
+                if isinstance(func, list):
+                    for f in func:
+                        result = f(self._editor, *args, **kwargs)
+                        if inspect.isawaitable(result):
+                            await result
+                else:
+                    result = func(self._editor, *args, **kwargs)
+                    if inspect.isawaitable(result):
+                        await result
 
     def _parse_command(self, command_input):
         if isinstance(command_input, list):
@@ -111,7 +129,8 @@ class SnoCommand:
             o, "o", completion_handler=o_completion_handler)
         self.add_command_handler(
             buffer, "buffer", completion_handler=buffer_completion_handler)
-
+        self.add_command_handler(execx, "!")
+        
     def add_command_handler(self, func, name: str, completion_handler=None) -> None:
         if isinstance(name, list):
             for n in name:

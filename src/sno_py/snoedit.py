@@ -1,10 +1,11 @@
 import os
-import asyncio
 
 import xonsh.built_ins
 import xonsh.execer
 import xonsh.imphooks
 import xonsh.environ
+
+from xonsh.procs.specs import SubprocSpec
 
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -22,6 +23,7 @@ from prompt_toolkit.styles.pygments import style_from_pygments_cls
 from pygments.styles import get_style_by_name
 from pygments.token import String
 
+from sno_py.singleton import singleton
 from sno_py.bindings import SnoBinds
 from sno_py.buffer import DebugBuffer, FileBuffer, LogBuffer, SnooBuffer
 from sno_py.layout import SnoLayout
@@ -31,6 +33,7 @@ from sno_py.color_utils import adjust_color_brightness
 
 from asyncer import asyncify
 
+@singleton
 class SnoEdit(object):
     def __init__(self) -> None:
         self.data_dir = user_data_dir("sno.py")
@@ -59,15 +62,15 @@ class SnoEdit(object):
         self.bindings = SnoBinds(self)
         self.layout = SnoLayout(self)
 
-        self.colorscheme = "monokai"
-        self.pygments_class = None 
-        self.style: Style = None 
+        self._colorscheme = "monokai"
+        self._pygments_class = None 
+        self._style: Style = None 
 
-        self.show_line_numbers = True
-        self.show_relative_numbers = True
-        self.expand_tab = True
-        self.tabstop = 4
-        self.display_unprintable_characters = True
+        self._show_line_numbers = True
+        self._show_relative_numbers = True
+        self._expand_tab = True
+        self._tabstop = 4
+        self._display_unprintable_characters = True
         
         execer = xonsh.execer.Execer()
         xonsh.built_ins.XSH.load(execer=execer, inherit_env=True)
@@ -100,48 +103,115 @@ class SnoEdit(object):
         
         await self._load_snorc_async()
         
-        self._setup_styles()
-        
         self.app = Application(layout=self.layout.layout, style=self.style,
                                key_bindings=self.bindings, full_screen=True, editing_mode=EditingMode.VI)
         
         await self.app.run_async(pre_run=pre_run)
     
-    def _setup_styles(self):
-        if not self.pygments_class:
-            self.pygments_class = get_style_by_name(self.colorscheme)
-        if not self.style:
-            self.style = style_from_pygments_cls(self.pygments_class)
+     
+    @property
+    def colorscheme(self) -> str:
+        return self._colorscheme
+    
+    @colorscheme.setter
+    def colorscheme(self, val) -> None:
+        self._colorscheme = val
+        self.pygments_class = get_style_by_name(self._colorscheme)
+     
+    @property
+    def pygments_class(self) -> None:
+        return self._pygments_class
+    
+    @pygments_class.setter
+    def pygments_class(self, val) -> None:
+        self._pygments_class = val
+        _style = style_from_pygments_cls(self.pygments_class)
             
-            self._style_extra = Style.from_dict(
-                {
-                    "background": f"bg:{self.pygments_class.background_color}",
-                    "container": f"bg:{adjust_color_brightness(self.pygments_class.background_color, 1.2)}",
-                    "completion-menu": f"bg:{adjust_color_brightness(self.pygments_class.background_color, 1.2)} {self.pygments_class.styles[String]}",
-                    "search": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
-                    "selected": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
-                    "completion-menu.completion.current": f"{self.pygments_class.highlight_color}",
-                }
-            )
-
-            self.style = merge_styles(
-                [
-                    self.style,
-                    self._style_extra
-                ]
-            ) 
+        self._style_extra = Style.from_dict(
+            {
+                "background": f"bg:{self.pygments_class.background_color}",
+                "container": f"bg:{adjust_color_brightness(self.pygments_class.background_color, 1.2)}",
+                "completion-menu": f"bg:{adjust_color_brightness(self.pygments_class.background_color, 1.2)} {self.pygments_class.styles[String]}",
+                "search": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
+                "selected": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
+                "completion-menu.completion.current": f"{self.pygments_class.highlight_color}",
+            }
+        )
         
+        self.style = merge_styles(
+            [
+                _style,
+                self._style_extra
+            ]
+        )
+    
+    @property
+    def style(self) -> Style:
+        return self._style
+    
+    @style.setter
+    def style(self, val) -> None:
+        self._style = val
+        
+    @property
+    def show_line_numbers(self):
+        return self._show_line_numbers
+
+    @show_line_numbers.setter
+    def show_line_numbers(self, value):
+        self._show_line_numbers = bool(value)
+        self.refresh_layout()
+
+    @property
+    def show_relative_numbers(self):
+        return self._show_relative_numbers
+
+    @show_relative_numbers.setter
+    def show_relative_numbers(self, value):
+        self._show_relative_numbers = bool(value)
+        self.refresh_layout()
+
+    @property
+    def expand_tab(self):
+        return self._expand_tab
+
+    @expand_tab.setter
+    def expand_tab(self, value):
+        self._expand_tab = bool(value)
+        self.refresh_layout()
+
+    @property
+    def tabstop(self):
+        return self._tabstop
+
+    @tabstop.setter
+    def tabstop(self, value):
+        self._tabstop = value
+        self.refresh_layout()
+
+    @property
+    def display_unprintable_characters(self):
+        return self._display_unprintable_characters
+
+    @display_unprintable_characters.setter
+    def display_unprintable_characters(self, value):
+        self._display_unprintable_characters = bool(value)    
+        self.refresh_layout()
     
     def log(self, text: str) -> None:
         self.log_handler.write(text)
+        
+    def clear_log(self) -> None:
+        self.log_handler.clear()
+        
+    def focus_log_buffer(self) -> None:
         self.app.layout.focus(self.log_buffer)
         self.app.vi_state.input_mode = InputMode.NAVIGATION
 
-    def clear_log(self) -> None:
+    def unfocus_log_buffer(self) -> None:
         self.app.layout.focus_last()
         self.app.vi_state.input_mode = InputMode.INSERT
-        self.log_handler.clear()
-
+    
     def reset_buffers(self) -> None:
         if has_focus(self.command_buffer):
             self.leave_command_mode()
@@ -236,3 +306,9 @@ class SnoEdit(object):
     
     async def _load_snorc_async(self) -> None:
         await asyncify(self._load_snorc)()
+    
+    def execx(self, code) -> None:
+        xonsh.built_ins.XSH.builtins.execx(code, glbs={"editor": self})
+    
+    async def aexecx(self, code) -> None:
+        await asyncify(self.execx)(code)

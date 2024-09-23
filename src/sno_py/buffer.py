@@ -59,6 +59,12 @@ class FileBuffer:
     @property
     def read_only(self) -> bool:
         return self._read_only
+    
+    def focus(self) -> None:
+        return
+    
+    def unfocus(self) -> None:
+        return
 
     def save(self) -> bool:
         if self._read_only:
@@ -79,6 +85,7 @@ class FileBuffer:
 
     def write(self, text: str) -> None:
         self._buffer.text = text
+        self.focus()
 
     def flush(self) -> None:
         pass
@@ -86,6 +93,7 @@ class FileBuffer:
     def clear(self) -> None:
         self._text = ""
         self._buffer.reset()
+        self.unfocus()
 
     @property
     def buffer_inst(self) -> Buffer:
@@ -129,6 +137,12 @@ class DebugBuffer:
     @property
     def saved(self) -> bool:
         return False
+    
+    def focus(self) -> None:
+        return
+    
+    def unfocus(self) -> None:
+        return
 
     def save(self) -> None:
         return False
@@ -140,6 +154,7 @@ class DebugBuffer:
         self._text += "\n" + \
             text.decode(self._encoding) if isinstance(text, bytes) else text
         self._buffer.text = self._text
+        self.focus()
 
     def flush(self) -> None:
         pass
@@ -147,6 +162,7 @@ class DebugBuffer:
     def clear(self) -> None:
         self._text = ""
         self._buffer.reset()
+        self.unfocus()
 
     @property
     def buffer_inst(self) -> Buffer:
@@ -161,3 +177,9 @@ class LogBuffer(DebugBuffer):
     def __init__(self, editor, encoding: str="utf-8") -> None:
         super().__init__(editor, encoding)
         self._name = ""
+        
+    def focus(self) -> None:
+        self._editor.focus_log_buffer()
+        
+    def unfocus(self) -> None:
+        self._editor.unfocus_log_buffer()
