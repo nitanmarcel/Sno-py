@@ -23,6 +23,8 @@ idna==3.10
 prompt-toolkit==3.0.47
     # via sno-py
     # via xonsh
+pyclip==0.7.0
+    # via sno-py
 pygments==2.18.0
     # via sno-py
     # via xonsh

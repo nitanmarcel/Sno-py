@@ -13,6 +13,7 @@ dependencies = [
     "strenum>=0.4.15",
     "asyncer>=0.0.8",
     "typing-extensions>=4.12.2",
+    "pyclip>=0.7.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

@@ -5,14 +5,14 @@ import xonsh.execer
 import xonsh.imphooks
 import xonsh.environ
 
-from xonsh.procs.specs import SubprocSpec
-
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Optional
 
 from appdirs import user_cache_dir, user_config_dir, user_data_dir
 from prompt_toolkit.application import Application, get_app
+from prompt_toolkit.clipboard.pyperclip import PyperclipClipboard
+from prompt_toolkit.clipboard.in_memory import InMemoryClipboard
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.completion import Completer
 from prompt_toolkit.enums import EditingMode
@@ -71,6 +71,7 @@ class SnoEdit(object):
         self._expand_tab = True
         self._tabstop = 4
         self._display_unprintable_characters = True
+        self._use_system_clipboard = True
         
         execer = xonsh.execer.Execer()
         xonsh.built_ins.XSH.load(execer=execer, inherit_env=True)
@@ -103,7 +104,7 @@ class SnoEdit(object):
         
         await self._load_snorc_async()
         
-        self.app = Application(layout=self.layout.layout, style=self.style,
+        self.app = Application(layout=self.layout.layout, style=self.style, clipboard=self.clipboard,
                                key_bindings=self.bindings, full_screen=True, editing_mode=EditingMode.VI)
         
         await self.app.run_async(pre_run=pre_run)
@@ -152,6 +153,8 @@ class SnoEdit(object):
     @style.setter
     def style(self, val) -> None:
         self._style = val
+        if self.app:
+            self.app.style = self._style
         
     @property
     def show_line_numbers(self):
@@ -195,8 +198,23 @@ class SnoEdit(object):
 
     @display_unprintable_characters.setter
     def display_unprintable_characters(self, value):
-        self._display_unprintable_characters = bool(value)    
+        self._display_unprintable_characters = bool(value)
         self.refresh_layout()
+        
+        
+    @property
+    def use_system_clipboard(self) -> bool:
+        return self._use_system_clipboard
+    
+    @use_system_clipboard.setter
+    def use_system_clipboard(self, value) -> None:
+        self._use_system_clipboard = bool(value)
+        if self.app:
+            self.app.clipboard = self.clipboard
+    
+    @property
+    def clipboard(self):
+        return PyperclipClipboard() if self._use_system_clipboard else InMemoryClipboard()
     
     def log(self, text: str) -> None:
         self.log_handler.write(text)
