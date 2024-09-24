@@ -1,7 +1,7 @@
 import sys
 
 from prompt_toolkit.application import get_app
-from prompt_toolkit.filters import Condition, has_focus
+from prompt_toolkit.filters import Condition, has_focus, is_searching
 from prompt_toolkit.layout import (ConditionalContainer, Float, FloatContainer,
                                    HSplit, Layout, VSplit, Window)
 from prompt_toolkit.layout.controls import BufferControl
@@ -15,6 +15,8 @@ from prompt_toolkit.layout.processors import (BeforeInput,
                                               TabsProcessor)
 from prompt_toolkit.lexers import DynamicLexer, PygmentsLexer
 from prompt_toolkit.widgets.toolbars import FormattedTextToolbar, SearchToolbar
+from prompt_toolkit.layout.processors import Processor, Transformation, TransformationInput
+from prompt_toolkit.layout.utils import explode_text_fragments
 
 from sno_py.vi_modes import get_input_mode
 
@@ -45,6 +47,34 @@ class LogToolBar(ConditionalContainer):
             filter=has_focus(editor.log_buffer)
         )
 
+class LspReporterToolBar(ConditionalContainer):
+    def __init__(self, editor) -> None:
+        def get_message_at_cursor():
+            if (active_buffer := editor.active_buffer) is not None:
+                line = active_buffer.buffer_inst.document.cursor_position_row
+                for report in active_buffer.reports():
+                    if report.range.start.line == line:
+                        return report.message
+            return []
+        super(LspReporterToolBar, self).__init__(
+            FormattedTextToolbar(get_message_at_cursor, style="class:pygments.error"),
+            filter=~has_focus(editor.command_buffer) & ~is_searching & ~has_focus("system") & Condition(get_message_at_cursor)
+        )
+
+class LspReporterProcessor(Processor):
+    def __init__(self, editor) -> None:
+        self._editor = editor
+        
+    def apply_transformation(self, transformation_input: TransformationInput) -> Transformation:
+        fragments = transformation_input.fragments
+        if (active_buffer := self._editor.active_buffer) is not None:
+            for report in active_buffer.reports():
+                if report.range.start.line == transformation_input.lineno:
+                    fragments = explode_text_fragments(fragments)
+                    for i in range(report.range.start.character, report.range.end.character):
+                        if i < len(fragments):
+                            fragments[i] = (" class:pygments.error", fragments[i][1])
+        return Transformation(fragments)
 
 class SnoLayout:
     def __init__(self, editor) -> None:
@@ -64,6 +94,7 @@ class SnoLayout:
                                     self.editor.active_buffer.display_name),
                             include_default_input_processors=False,
                             input_processors=[
+                                LspReporterProcessor(self.editor),
                                 ShowTrailingWhiteSpaceProcessor(),
                                 HighlightSelectionProcessor(),
                                 HighlightSearchProcessor(),
@@ -96,9 +127,16 @@ class SnoLayout:
                         ],
                         width=Dimension()
                     ),
-                    LogToolBar(self.editor),
-                    self.search_toolbar,
-                    CommandToolBar(self.editor)
+                    
+                    VSplit(
+                        [ 
+                            LspReporterToolBar(self.editor),
+                            LogToolBar(self.editor),
+                            self.search_toolbar,
+                            CommandToolBar(self.editor)
+                        ],
+                        style="class:background"     
+                    )
                 ]), floats=[
                     Float(
                         xcursor=True,

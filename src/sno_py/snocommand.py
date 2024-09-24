@@ -18,29 +18,30 @@ def q(editor, *args, **kwargs):
 
 @redirect.debug_stderr
 @redirect.debug_stdout
-def qa(editor, *args, **kwargs):
+async def qa(editor, *args, **kwargs):
     if "force" in kwargs:
-        return editor.close_all_buffers(forced=True)
-    return editor.close_all_buffers()
+        return await editor.close_all_buffers(forced=True)
+    return await editor.close_all_buffers()
 
 
 @redirect.debug_stderr
 @redirect.debug_stdout
-def w(editor, *args, **kwargs) -> None:
-    editor.save_current_buffer()
+async def w(editor, *args, **kwargs) -> None:
+    await editor.save_current_buffer()
 
 
 @redirect.debug_stderr
 @redirect.debug_stdout
-def wa(editor, *args, **kwargs) -> None:
-    editor.save_all_buffers()
+async def wa(editor, *args, **kwargs) -> None:
+    await editor.save_all_buffers()
 
 
 @redirect.debug_stderr
 @redirect.debug_stdout
-def o(editor, *args, **kwargs) -> None:
+async def o(editor, *args, **kwargs) -> None:
+    del kwargs["_raw"]
     for arg in args:
-        editor.create_file_buffer(arg, **kwargs)
+        await editor.create_file_buffer(arg, **kwargs)
 
 
 @redirect.debug_stderr
@@ -56,9 +57,9 @@ def o_completion_handler(editor, args: list):
 
 @redirect.debug_stderr
 @redirect.debug_stdout
-def buffer(editor, *args, **kwargs) -> None:
+async def buffer(editor, *args, **kwargs) -> None:
     if (args):
-        editor.select_buffer(display_name=args[0])
+        await editor.select_buffer(display_name=args[0])
 
 
 @redirect.debug_stderr

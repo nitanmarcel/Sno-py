@@ -30,6 +30,7 @@ from sno_py.layout import SnoLayout
 from sno_py.snocommand import SnoCommand
 from sno_py.strings import get_string
 from sno_py.color_utils import adjust_color_brightness
+from sno_py.lsp.manager import LanguageClientManager
 
 from asyncer import asyncify
 
@@ -42,7 +43,9 @@ class SnoEdit(object):
         self.home_dir = Path.home()
 
         self._create_base_dirs()
-
+        
+        self.lsp = LanguageClientManager()
+        
         self.command_runner = SnoCommand(self)
         self.command_buffer = Buffer(multiline=False, completer=self.command_runner.default_completer,
                                      complete_while_typing=True, on_text_changed=self.command_runner.process_command_completion)
@@ -253,7 +256,7 @@ class SnoEdit(object):
         if buffer.read_only:
             self.log(get_string("read_only"))
 
-    def create_file_buffer(self, path: str, encoding: str = "utf-8") -> None:
+    async def create_file_buffer(self, path: str, encoding: str = "utf-8") -> None:
         if not path:
             return
         buffer = FileBuffer(
@@ -261,6 +264,7 @@ class SnoEdit(object):
             path,
             encoding
         )
+        await buffer.load()
         self.add_buffer(buffer)
 
     def select_buffer(self, path=None, display_name: Optional[str]=None) -> None:
@@ -276,39 +280,41 @@ class SnoEdit(object):
                 return i
         return None
 
-    def save_current_buffer(self) -> None:
-        if not self.active_buffer.save():
+    async def save_current_buffer(self) -> None:
+        if not await self.active_buffer.save():
             self.log(get_string("read_only"))
             return False
         return True
 
-    def save_all_buffers(self) -> None:
+    async def save_all_buffers(self) -> None:
         for b in reversed(self.buffers):
-            if not b.save():
+            if not await b.save():
                 break
 
-    def close_current_buffer(self, buffer=None, forced: bool=False) -> bool:
+    async def close_current_buffer(self, buffer=None, forced: bool=False) -> bool:
         if not buffer:
             buffer = self.active_buffer
         if buffer.saved or forced:
             if len(self.buffers) == 1:
+                await self.buffers[0].close()
                 get_app().exit()
                 return True
             else:
                 index = self.get_buffer_index(path=buffer.path)
-                self.buffers.pop(index)
+                buffer = self.buffers.pop(index)
+                await buffer.close()
                 self.active_buffer = self.buffers[index-1]
                 self.refresh_layout()
                 return True
         else:
             if len(self.buffers) > 1:
-                self.select_buffer(path=buffer.path)
+                await self.select_buffer(path=buffer.path)
             self.log(get_string("not_saved"))
             return False
 
-    def close_all_buffers(self, forced: bool=False) -> bool:
+    async def close_all_buffers(self, forced: bool=False) -> bool:
         for b in reversed(self.buffers):
-            if not self.close_current_buffer(buffer=b, forced=forced):
+            if not await self.close_current_buffer(buffer=b, forced=forced):
                 break
 
     def refresh_layout(self) -> None:
