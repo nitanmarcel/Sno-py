@@ -75,7 +75,7 @@ class SnoEdit(object):
         self._tabstop = 4
         self._display_unprintable_characters = True
         self._use_system_clipboard = True
-        
+         
         execer = xonsh.execer.Execer()
         xonsh.built_ins.XSH.load(execer=execer, inherit_env=True)
         xonsh.imphooks.install_import_hooks(execer=execer) 
@@ -110,6 +110,7 @@ class SnoEdit(object):
         self.app = Application(layout=self.layout.layout, style=self.style, clipboard=self.clipboard,
                                key_bindings=self.bindings, full_screen=True, editing_mode=EditingMode.VI)
         
+        await self.active_buffer.focus() 
         await self.app.run_async(pre_run=pre_run)
     
      
@@ -151,6 +152,8 @@ class SnoEdit(object):
     
     @property
     def style(self) -> Style:
+        if not self._style:
+            self.colorscheme = self._colorscheme
         return self._style
     
     @style.setter

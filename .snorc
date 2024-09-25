@@ -10,5 +10,4 @@ editor.display_unprintable_characters = True
 
 # Configure lsp
 
-
-e.lsp.add_server(language_id="python", extensions=[".py"], command="pylsp", args=[])
+editor.lsp.add_server(language_id="python", extensions=[".py"], command="pylsp", args=[])

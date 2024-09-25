@@ -1,17 +1,23 @@
 import asyncio
 import contextlib
-import logging
 import pathlib
 import subprocess
-from typing import List, Optional, Type, AsyncGenerator
+from typing import List, Optional, Type, AsyncGenerator, Coroutine
+from dataclasses import dataclass
 
 import sansio_lsp_client as lsp
 from pydantic import parse_obj_as
 from sansio_lsp_client.io_handler import _make_request, _make_response
 from sansio_lsp_client.structs import JSONDict, Request
+from pydantic import BaseModel
 
 class LanguageServerCrashed(Exception):
     ...
+    
+@dataclass
+class NotificationHandler:
+    of_type: BaseModel
+    func: Coroutine
 
 class AsyncSendLspClient(lsp.Client):
     def _ensure_send_buf_is_queue(self):
@@ -77,6 +83,9 @@ class LspClient:
         self._new_messages = asyncio.Queue()
         self._notification_queues = []
         self._process_gone = asyncio.Event()
+        self._notification_handlers = []
+        
+        self._signature_triggers = []
 
     async def _send_stdin(self):
         try:
@@ -138,7 +147,9 @@ class LspClient:
             self._send_stdin(), self._process_stdout(), self._log_stderr(), return_exceptions=True
         )
 
-        await self._wait_for_message_of_type(lsp.Initialized)
+        initialized = await self._wait_for_message_of_type(lsp.Initialized)
+        self._signature_triggers = initialized.capabilities.get('signatureHelpProvider', {}).get('triggerCharacters', [])
+        
     def _try_default_reply(self, msg):
         if isinstance(
             msg,
@@ -178,7 +189,7 @@ class LspClient:
         return task.result()
 
     @contextlib.asynccontextmanager
-    async def listen_for_notifications(self, cancellation_token=None):
+    async def _listen_for_notifications(self, cancellation_token=None):
         queue = asyncio.Queue()
         if cancellation_token is None:
             cancellation_token = asyncio.Event()
@@ -205,6 +216,22 @@ class LspClient:
         yield get_notifications()
         cancellation_token.set()
         self._notification_queues.remove(queue)
+        
+    async def listen_for_notifications(self, cancellation_token: asyncio.Event):
+        async with self._listen_for_notifications(cancellation_token=cancellation_token) as notifier:
+            async for notification in notifier:
+                for handler in self._notification_handlers:
+                    if isinstance(notification, handler.of_type):
+                        await handler.func(notification)
+        
+    def add_notification_handler(self, of_type: BaseModel, func: Coroutine):
+        self._notification_handlers.append(NotificationHandler(of_type=of_type, func=func))
+    
+    def remove_notification_handler(self, of_type: BaseModel, func: Coroutine):
+        for handler in self._notification_handlers:
+            if handler.of_type == of_type and handler.func == func:
+                self._notification_handlers.remove(handler)
+                break
 
     @staticmethod
     def validate_config(root_path: pathlib.Path):
@@ -274,6 +301,23 @@ class LspClient:
        )
        for item in (await self._wait_for_message_of_type(lsp.Completion)).completion_list.items:
            yield item
+           
+    async def request_signature(self, file_path: str, line: int, character: int):
+        self.lsp_client.signatureHelp(
+           text_document_position=lsp.TextDocumentPosition(
+               textDocument=lsp.TextDocumentIdentifier(
+                   uri=pathlib.Path(file_path).as_uri()
+               ),
+               position=lsp.Position(line=line, character=character)
+           ),
+        )
+        
+        signature = await self._wait_for_message_of_type(lsp.SignatureHelp)
+        return signature.get_hint_str()
+    
+    @property
+    def signature_triggers(self):
+        return self._signature_triggers
        
     async def exit(self):
         if self._process:

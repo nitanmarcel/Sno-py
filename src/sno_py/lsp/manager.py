@@ -6,6 +6,7 @@ from sno_py.lsp.client import LspClient
 import sansio_lsp_client as lsp
 
 import os
+import asyncio
 
 @dataclass
 class ServerConfig:
@@ -24,6 +25,8 @@ class LanguageClientManager:
         self._servers: List[ServerConfig] = []
         self._running: List[RunningServer] = []
         
+        self._cancelation_token = asyncio.Event()
+        
     def add_server(self, language_id: str, extensions: List[str], command: str, args: List[str]):
         self._servers.append(ServerConfig(language_id=language_id, extensions=extensions, command=command, args=args))
     
@@ -36,6 +39,7 @@ class LanguageClientManager:
                 return server.client
         client = LspClient(root_path)
         await client.start(config.command, config.args)
+        asyncio.create_task(client.listen_for_notifications(cancellation_token=self._cancelation_token))
         self._running.append(RunningServer(extensions=config.extensions, client=client))
         return client
     
@@ -58,8 +62,3 @@ class LanguageClientManager:
     def get_extension_from_file_path(file_path):
         _, ext = os.path.splitext(file_path)
         return ext
-    
-    async def _process_notifications(self, client: LspClient):
-        async with client.listen_for_notifications() as listener:
-            for notification in listener:
-                print(notification)

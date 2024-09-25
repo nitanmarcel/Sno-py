@@ -75,10 +75,17 @@ class FileBuffer:
         return self._read_only
     
     async def focus(self) -> None:
-        pass
-
+        if (lsp_client := await self._editor.lsp.get_client(self._path, os.getcwd())) is not None and self._lsp_client is None:
+            self._lsp_client = lsp_client
+            self._lsp_client.open_document(self._path, self._text)
+            self._lsp_client.add_notification_handler(of_type=PublishDiagnostics, func=self.listen_for_reports)
+            
     async def unfocus(self) -> None:
-        return
+        if self._lsp_client is None:
+            self._lsp_client = await self._editor.lsp.get_server()
+
+            self._lsp_client.open_document(self._path, self._text)
+            self._lsp_client.add_notification_handler(of_type=PublishDiagnostics, func=self.listen_for_reports)
     
     async def save(self) -> bool:
         if self._lsp_client is not None:
@@ -104,15 +111,12 @@ class FileBuffer:
         if (lsp_client := await self._editor.lsp.get_client(self._path, os.getcwd())) is not None:
             self._lsp_client = lsp_client
             self._lsp_client.open_document(self._path, self._text)
-            self._report_task = create_task(self.listen_for_reports())
-    
+            self._lsp_client.add_notification_handler(of_type=PublishDiagnostics, func=self.listen_for_reports)
+             
     async def close(self):
         if self._lsp_client is not None:
             self._lsp_client.close_document(self._path)
-        self._cancelation_token.set()
-        if self._report_task is not None:
-            self._report_task.cancel()
-
+            
     def write(self, text: str) -> None:
         pass
 
@@ -133,15 +137,12 @@ class FileBuffer:
         if self._lsp_client is not None:
             self._lsp_client.change_document(self._path, version=next(self._version), text=self._buffer.text, want_diagnostics=True)
             
-    async def listen_for_reports(self):
+    async def listen_for_reports(self, ev):
         if self._lsp_client is not None:
-            async with self._lsp_client.listen_for_notifications(self._cancelation_token) as notifications:
-                async for ev in notifications:
-                    if isinstance(ev, PublishDiagnostics):
-                        with self._reports:
-                            for diagnostic in ev.diagnostics:
-                                if diagnostic.severity == DiagnosticSeverity.ERROR:
-                                    self._reports.append(diagnostic)
+            with self._reports:
+                for diagnostic in ev.diagnostics:
+                    if diagnostic.severity == DiagnosticSeverity.ERROR:
+                        self._reports.append(diagnostic)
     
     def reports(self):
         return self._reports.get_diagnostics() 
@@ -203,7 +204,6 @@ class DebugBuffer:
         self._text += "\n" + \
             text.decode(self._encoding) if isinstance(text, bytes) else text
         self._buffer.text = self._text
-        self.focus()
 
     def flush(self) -> None:
         pass
@@ -211,7 +211,6 @@ class DebugBuffer:
     def clear(self) -> None:
         self._text = ""
         self._buffer.reset()
-        self.unfocus()
     
     @property
     def buffer_inst(self) -> Buffer:
