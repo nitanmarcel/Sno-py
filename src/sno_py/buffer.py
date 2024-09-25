@@ -197,10 +197,10 @@ class DebugBuffer:
     def save(self) -> None:
         return False
 
-    async def load(self) -> None:
+    def load(self) -> None:
         pass
 
-    async def write(self, text: str) -> None:
+    def write(self, text: str) -> None:
         self._text += "\n" + \
             text.decode(self._encoding) if isinstance(text, bytes) else text
         self._buffer.text = self._text

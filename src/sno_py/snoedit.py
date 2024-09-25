@@ -21,7 +21,7 @@ from prompt_toolkit.key_binding.vi_state import InputMode
 from prompt_toolkit.styles import Style, merge_styles
 from prompt_toolkit.styles.pygments import style_from_pygments_cls
 from pygments.styles import get_style_by_name
-from pygments.token import String
+from pygments.token import String, Error
 
 from sno_py.singleton import singleton
 from sno_py.bindings import SnoBinds
@@ -140,6 +140,7 @@ class SnoEdit(object):
                 "search": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
                 "selected": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
                 "completion-menu.completion.current": f"{self.pygments_class.highlight_color}",
+                "lsp-message-text": self.pygments_class.styles[Error]
             }
         )
         
@@ -224,9 +225,11 @@ class SnoEdit(object):
     
     def log(self, text: str) -> None:
         self.log_handler.write(text)
+        self.focus_log_buffer()
         
     def clear_log(self) -> None:
         self.log_handler.clear()
+        self.unfocus_log_buffer()
         
     def focus_log_buffer(self) -> None:
         self.app.layout.focus(self.log_buffer)
@@ -234,7 +237,7 @@ class SnoEdit(object):
 
     def unfocus_log_buffer(self) -> None:
         self.app.layout.focus_last()
-        self.app.vi_state.input_mode = InputMode.INSERT
+        self.app.vi_state.input_mode = InputMode.NAVIGATION
     
     def reset_buffers(self) -> None:
         if has_focus(self.command_buffer):
@@ -262,9 +265,14 @@ class SnoEdit(object):
     async def create_file_buffer(self, path: str, encoding: str = "utf-8") -> None:
         if not path:
             return
+        for buffer in self.buffers:
+            if buffer.path == os.path.abspath(path):
+                if not buffer.path == self.active_buffer.path:
+                    self.select_buffer(path=path)
+                return
         buffer = FileBuffer(
             self,
-            path,
+            os.path.abspath(path),
             encoding
         )
         await buffer.load()
@@ -277,7 +285,7 @@ class SnoEdit(object):
 
     def get_buffer_index(self, path=None, display_name: Optional[str]=None) -> Optional[int]:
         for i, buff in enumerate(self.buffers):
-            if path and buff.path == path:
+            if path and buff.path == os.path.abspath(path):
                 return i
             if display_name and buff.display_name == display_name:
                 return i

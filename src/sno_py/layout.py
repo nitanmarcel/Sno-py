@@ -3,8 +3,8 @@ import sys
 from prompt_toolkit.application import get_app
 from prompt_toolkit.filters import Condition, has_focus, is_searching
 from prompt_toolkit.layout import (ConditionalContainer, Float, FloatContainer,
-                                   HSplit, Layout, VSplit, Window)
-from prompt_toolkit.layout.controls import BufferControl
+                                   HSplit, Layout, VSplit, Window, WindowAlign)
+from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.margins import ConditionalMargin, NumberedMargin
 from prompt_toolkit.layout.menus import CompletionsMenu
@@ -19,7 +19,6 @@ from prompt_toolkit.layout.processors import Processor, Transformation, Transfor
 from prompt_toolkit.layout.utils import explode_text_fragments
 
 from sno_py.vi_modes import get_input_mode
-
 
 class CommandToolBar(ConditionalContainer):
     def __init__(self, editor) -> None:
@@ -57,7 +56,7 @@ class LspReporterToolBar(ConditionalContainer):
                         return report.message
             return []
         super(LspReporterToolBar, self).__init__(
-            FormattedTextToolbar(get_message_at_cursor, style="class:pygments.error"),
+            FormattedTextToolbar(get_message_at_cursor, style="class:lsp-message-text"),
             filter=~has_focus(editor.command_buffer) & ~is_searching & ~has_focus("system") & Condition(get_message_at_cursor)
         )
 
@@ -91,7 +90,8 @@ class SnoLayout:
                     Window(
                         BufferControl(
                             lexer=PygmentsLexer.from_filename(
-                                    self.editor.active_buffer.display_name),
+                                    self.editor.active_buffer.display_name,
+                                    sync_from_start=False),
                             include_default_input_processors=False,
                             input_processors=[
                                 LspReporterProcessor(self.editor),
@@ -122,21 +122,32 @@ class SnoLayout:
                     ),
                     VSplit(
                         [
-                            FormattedTextToolbar(lambda: str(
-                                get_input_mode()), style="class:pygments.string class:container"),
+                            FormattedTextToolbar(lambda: f" {self.editor.active_buffer.display_name}" +
+                                ("* " if not self.editor.active_buffer.saved else " ") +
+                                str(get_input_mode()),
+                                style="class:pygments.string class:container"),
+                            
+                            Window(
+                                FormattedTextControl(lambda: f"- {self.editor.active_buffer.buffer_inst.document.cursor_position_row + 1},"
+                                                             f"{self.editor.active_buffer.buffer_inst.document.cursor_position_col + 1}"
+                                                             " "),
+                                align=WindowAlign.RIGHT,
+                                style="class:pygments.string class:container",
+                                height=1,
+                            )
                         ],
                         width=Dimension()
                     ),
                     
-                    VSplit(
+                    HSplit(
                         [ 
                             LspReporterToolBar(self.editor),
                             LogToolBar(self.editor),
                             self.search_toolbar,
                             CommandToolBar(self.editor)
                         ],
-                        style="class:background"     
-                    )
+                        style="class:background"
+                    ) 
                 ]), floats=[
                     Float(
                         xcursor=True,

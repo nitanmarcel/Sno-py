@@ -59,7 +59,7 @@ def o_completion_handler(editor, args: list):
 @redirect.debug_stdout
 async def buffer(editor, *args, **kwargs) -> None:
     if (args):
-        await editor.select_buffer(display_name=args[0])
+        editor.select_buffer(display_name=args[0])
 
 
 @redirect.debug_stderr
