@@ -3,9 +3,10 @@ import asyncio
 from typing import AsyncGenerator, Iterable
 
 from prompt_toolkit.completion import Completer, CompleteEvent, Completion
-from prompt_toolkit.completion.word_completer import WordCompleter
 from prompt_toolkit.document import Document
-from sansio_lsp_client import CompletionItemKind
+from prompt_toolkit import HTML
+from sansio_lsp_client import CompletionItemKind, MarkupContent
+from markdown import markdown
 
 completion_symbols_plain = {
     CompletionItemKind.TEXT: "\u005F",
@@ -58,9 +59,9 @@ class LanguageCompleter(Completer):
             else:
                 async for completion in client.request_completion(file_path=self._file_path, line=document.cursor_position_row, character=document.cursor_position_col):
                     yield Completion(
-                        text=completion.insertText,
+                        text=completion.insertText or completion.label,
                         start_position=-len(document.get_word_before_cursor()),
                         display=completion_symbols_plain[completion.kind] + " " + completion.label,
-                        display_meta=completion.documentation
+                        display_meta=HTML(markdown(completion.documentation.value)) if isinstance(completion.documentation, MarkupContent) else completion.documentation
                     )
  
