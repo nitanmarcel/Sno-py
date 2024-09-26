@@ -10,7 +10,6 @@ import asyncio
 
 @dataclass
 class ServerConfig:
-    language_id: str
     extensions: List[str]
     command: str
     args: List[str]
@@ -21,14 +20,15 @@ class RunningServer:
     client: LspClient
 
 class LanguageClientManager:
-    def __init__(self) -> None:
+    def __init__(self, editor) -> None:
+        self._editor = editor
         self._servers: List[ServerConfig] = []
         self._running: List[RunningServer] = []
         
         self._cancelation_token = asyncio.Event()
         
-    def add_server(self, language_id: str, extensions: List[str], command: str, args: List[str]):
-        self._servers.append(ServerConfig(language_id=language_id, extensions=extensions, command=command, args=args))
+    def add_server(self, extensions: List[str], command: str, args: List[str]):
+        self._servers.append(ServerConfig(extensions=extensions, command=command, args=args))
     
     async def get_client(self, file_path: str, root_path: str) -> Optional[LspClient]:
         config = self.get_server_config(file_path)

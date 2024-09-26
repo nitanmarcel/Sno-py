@@ -31,6 +31,7 @@ from sno_py.snocommand import SnoCommand
 from sno_py.strings import get_string
 from sno_py.color_utils import adjust_color_brightness
 from sno_py.lsp.manager import LanguageClientManager
+from sno_py.filetypes import FileType
 
 from asyncer import asyncify
 
@@ -44,7 +45,8 @@ class SnoEdit(object):
 
         self._create_base_dirs()
         
-        self.lsp = LanguageClientManager()
+        self.filetype = FileType()
+        self.lsp = LanguageClientManager(self)
         
         self.command_runner = SnoCommand(self)
         self.command_buffer = Buffer(multiline=False, completer=self.command_runner.default_completer,

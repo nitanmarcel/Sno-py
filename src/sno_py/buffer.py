@@ -77,15 +77,15 @@ class FileBuffer:
     async def focus(self) -> None:
         if (lsp_client := await self._editor.lsp.get_client(self._path, os.getcwd())) is not None and self._lsp_client is None:
             self._lsp_client = lsp_client
-            self._lsp_client.open_document(self._path, self._text)
+            self._lsp_client.open_document(self._editor.filetype.guess_filetype(self._path, self._buffer.document.text), self._path, self._text)
             self._lsp_client.add_notification_handler(of_type=PublishDiagnostics, func=self.listen_for_reports)
             
     async def unfocus(self) -> None:
         if self._lsp_client is None:
             self._lsp_client = await self._editor.lsp.get_server()
 
-            self._lsp_client.open_document(self._path, self._text)
-            self._lsp_client.add_notification_handler(of_type=PublishDiagnostics, func=self.listen_for_reports)
+            self._lsp_client.close_document(self._path)
+            self._lsp_client.remove_notification_handler(of_type=PublishDiagnostics, func=self.listen_for_reports)
     
     async def save(self) -> bool:
         if self._lsp_client is not None:
@@ -110,9 +110,10 @@ class FileBuffer:
                     self._buffer.text = self._text
         if (lsp_client := await self._editor.lsp.get_client(self._path, os.getcwd())) is not None:
             self._lsp_client = lsp_client
-            self._lsp_client.open_document(self._path, self._text)
-            self._lsp_client.add_notification_handler(of_type=PublishDiagnostics, func=self.listen_for_reports)
-             
+            self._lsp_client.open_document(self._editor.filetype.guess_filetype(self._path, self._buffer.document.text), self._path, self._text)
+            self._lsp_client.add_notification_handler(of_type=PublishDiagnostics, func=self.listen_for_reports) 
+            self._lsp_client.remove_notification_handler(of_type=PublishDiagnostics, func=self.listen_for_reports)
+            
     async def close(self):
         if self._lsp_client is not None:
             self._lsp_client.close_document(self._path)

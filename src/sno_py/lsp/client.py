@@ -239,10 +239,10 @@ class LspClient:
         # TODO - Check for a valid config with IncludeCleaner setup
         return True
 
-    def open_document(self, file_path: str, file_contents: str) -> lsp.TextDocumentItem:
+    def open_document(self, language_id: str, file_path: str, file_contents: str) -> lsp.TextDocumentItem:
         document = lsp.TextDocumentItem(
             uri=pathlib.Path(file_path).as_uri(),
-            languageId="python",
+            languageId=language_id,
             text=file_contents,
             version=1,
         )

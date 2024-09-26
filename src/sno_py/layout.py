@@ -128,9 +128,10 @@ class SnoLayout:
                                 style="class:pygments.string class:container"),
                             
                             Window(
-                                FormattedTextControl(lambda: f"- {self.editor.active_buffer.buffer_inst.document.cursor_position_row + 1},"
-                                                             f"{self.editor.active_buffer.buffer_inst.document.cursor_position_col + 1}"
-                                                             " "),
+                                FormattedTextControl(lambda: f"{self.editor.filetype.guess_filetype(self.editor.active_buffer._path, self.editor.active_buffer.buffer_inst.document.text)} "
+                                                                f"- {self.editor.active_buffer.buffer_inst.document.cursor_position_row + 1},"
+                                                                f"{self.editor.active_buffer.buffer_inst.document.cursor_position_col + 1}"
+                                                                " "),
                                 align=WindowAlign.RIGHT,
                                 style="class:pygments.string class:container",
                                 height=1,
