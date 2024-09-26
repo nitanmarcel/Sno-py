@@ -19,6 +19,7 @@ class NotificationHandler:
     of_type: BaseModel
     func: Coroutine
 
+# CC: https://github.com/dsanders11/chromium-include-cleanup/blob/25ff1861ae8ce9cd0ebd4caa2a5c9c524def9b23/clangd_lsp.py#L60
 class AsyncSendLspClient(lsp.Client):
     def _ensure_send_buf_is_queue(self):
         if not isinstance(self._send_buf, asyncio.Queue):
