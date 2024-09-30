@@ -4,6 +4,7 @@ from prompt_toolkit.key_binding import KeyBindings
 
 from sno_py.filters import Filters
 
+
 class SnoBinds(KeyBindings):
     def __init__(self, editor) -> None:
         self.editor = editor
@@ -13,7 +14,9 @@ class SnoBinds(KeyBindings):
         self._create_defaults()
 
     def _create_defaults(self):
-        @self.add(":", filter=self.filters.is_navigation_mode & (~self.filters.is_log_mode))
+        @self.add(
+            ":", filter=self.filters.is_navigation_mode & (~self.filters.is_log_mode)
+        )
         async def enter_command_mode(_) -> None:
             await self.editor.enter_command_mode()
 
@@ -37,8 +40,8 @@ class SnoBinds(KeyBindings):
         async def add_tab(event) -> None:
             buffer = event.app.current_buffer
             if self.editor.expand_tab:
-                buffer.insert_text(' ' * self.editor.tabstop)
+                buffer.insert_text(" " * self.editor.tabstop)
             else:
-                buffer.insert_text('\t')
+                buffer.insert_text("\t")
 
         return self

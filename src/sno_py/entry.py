@@ -1,4 +1,3 @@
-
 from sno_py.snoedit import SnoEdit
 
 

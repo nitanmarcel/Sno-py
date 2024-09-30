@@ -11,19 +11,27 @@ class Filters:
             @Condition
             def vi_buffer_focused() -> bool:
                 app = get_app()
-                if app.layout.has_focus(self._editor.search_buffer) or app.layout.has_focus(self._editor.command_buffer) or app.layout.has_focus(self._editor.log_buffer):
+                if (
+                    app.layout.has_focus(self._editor.search_buffer)
+                    or app.layout.has_focus(self._editor.command_buffer)
+                    or app.layout.has_focus(self._editor.log_buffer)
+                ):
                     return True
                 return False
 
             @Condition
             def vi_log_focused():
                 app = get_app()
-                return _Conditions.vi_buffer_focused() and app.layout.has_focus(self._editor.log_buffer)
+                return _Conditions.vi_buffer_focused() and app.layout.has_focus(
+                    self._editor.log_buffer
+                )
 
             @Condition
             def vi_command_focused():
                 app = get_app()
-                return _Conditions.vi_buffer_focused() and app.layout.has_focus(self._editor.command_buffer)
+                return _Conditions.vi_buffer_focused() and app.layout.has_focus(
+                    self._editor.command_buffer
+                )
 
         self.vi_buffer_focused = _Conditions.vi_buffer_focused
         self.is_command_mode = _Conditions.vi_command_focused

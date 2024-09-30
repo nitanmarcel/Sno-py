@@ -1,12 +1,11 @@
 from prompt_toolkit.buffer import Buffer
-from sno_py.snoedit import SnoEdit
 
+from sno_py.snoedit import SnoEdit
 
 class DebugBuffer:
     def __init__(self, editor: SnoEdit, encoding: str = ...) -> None: ...
     @property
     def buffer_inst(self) -> Buffer: ...
-
 
 class FileBuffer:
     def __init__(self, editor: SnoEdit, path: str, encoding: str = ...) -> None: ...
@@ -22,7 +21,6 @@ class FileBuffer:
     def save(self) -> bool: ...
     @property
     def saved(self) -> bool: ...
-
 
 class LogBuffer:
     def __init__(self, editor: SnoEdit, encoding: str = ...) -> None: ...

@@ -1,15 +1,17 @@
-import sys
 import asyncio
+import sys
 from functools import wraps
-from typing import Callable, Any, TypeVar, Union
+from typing import Any, Callable, TypeVar, Union
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
+
 
 def create_redirector(attr_name: str, stream_name: str):
     def decorator(func: F) -> F:
         @wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             from sno_py.snoedit import SnoEdit
+
             app = SnoEdit()
             original_stream = getattr(sys, stream_name)
             setattr(sys, stream_name, getattr(app, attr_name))
@@ -22,6 +24,7 @@ def create_redirector(attr_name: str, stream_name: str):
         @wraps(func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             from sno_py.snoedit import SnoEdit
+
             app = SnoEdit()
             original_stream = getattr(sys, stream_name)
             setattr(sys, stream_name, getattr(app, attr_name))
@@ -35,7 +38,8 @@ def create_redirector(attr_name: str, stream_name: str):
 
     return decorator
 
-debug_stdout = create_redirector('debug_buffer', 'stdout')
-debug_stderr = create_redirector('debug_buffer', 'stderr')
-log_stdout = create_redirector('log_handler', 'stdout')
-log_stderr = create_redirector('log_handler', 'stderr')
+
+debug_stdout = create_redirector("debug_buffer", "stdout")
+debug_stderr = create_redirector("debug_buffer", "stderr")
+log_stdout = create_redirector("log_handler", "stdout")
+log_stderr = create_redirector("log_handler", "stderr")

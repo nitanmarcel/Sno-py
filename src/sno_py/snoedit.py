@@ -1,19 +1,18 @@
 import os
-
-import xonsh.built_ins
-import xonsh.execer
-import xonsh.imphooks
-import xonsh.environ
-
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Optional
 
+import xonsh.built_ins
+import xonsh.environ
+import xonsh.execer
+import xonsh.imphooks
 from appdirs import user_cache_dir, user_config_dir, user_data_dir
+from asyncer import asyncify
 from prompt_toolkit.application import Application, get_app
-from prompt_toolkit.clipboard.pyperclip import PyperclipClipboard
-from prompt_toolkit.clipboard.in_memory import InMemoryClipboard
 from prompt_toolkit.buffer import Buffer
+from prompt_toolkit.clipboard.in_memory import InMemoryClipboard
+from prompt_toolkit.clipboard.pyperclip import PyperclipClipboard
 from prompt_toolkit.completion import Completer
 from prompt_toolkit.enums import EditingMode
 from prompt_toolkit.filters import has_focus
@@ -21,19 +20,18 @@ from prompt_toolkit.key_binding.vi_state import InputMode
 from prompt_toolkit.styles import Style, merge_styles
 from prompt_toolkit.styles.pygments import style_from_pygments_cls
 from pygments.styles import get_style_by_name
-from pygments.token import String, Error
+from pygments.token import Error, String
 
-from sno_py.singleton import singleton
 from sno_py.bindings import SnoBinds
 from sno_py.buffer import DebugBuffer, FileBuffer, LogBuffer, SnooBuffer
+from sno_py.color_utils import adjust_color_brightness
+from sno_py.filetypes import FileType
 from sno_py.layout import SnoLayout
+from sno_py.lsp.manager import LanguageClientManager
+from sno_py.singleton import singleton
 from sno_py.snocommand import SnoCommand
 from sno_py.strings import get_string
-from sno_py.color_utils import adjust_color_brightness
-from sno_py.lsp.manager import LanguageClientManager
-from sno_py.filetypes import FileType
 
-from asyncer import asyncify
 
 @singleton
 class SnoEdit(object):
@@ -44,13 +42,17 @@ class SnoEdit(object):
         self.home_dir = Path.home()
 
         self._create_base_dirs()
-        
+
         self.filetype = FileType()
         self.lsp = LanguageClientManager(self)
-        
+
         self.command_runner = SnoCommand(self)
-        self.command_buffer = Buffer(multiline=False, completer=self.command_runner.default_completer,
-                                     complete_while_typing=True, on_text_changed=self.command_runner.process_command_completion)
+        self.command_buffer = Buffer(
+            multiline=False,
+            completer=self.command_runner.default_completer,
+            complete_while_typing=True,
+            on_text_changed=self.command_runner.process_command_completion,
+        )
 
         self.search_buffer = Buffer(multiline=False)
 
@@ -68,8 +70,8 @@ class SnoEdit(object):
         self.layout = SnoLayout(self)
 
         self._colorscheme = "monokai"
-        self._pygments_class = None 
-        self._style: Style = None 
+        self._pygments_class = None
+        self._style: Style = None
 
         self._show_line_numbers = True
         self._show_relative_numbers = True
@@ -77,13 +79,13 @@ class SnoEdit(object):
         self._tabstop = 4
         self._display_unprintable_characters = True
         self._use_system_clipboard = True
-         
+
         execer = xonsh.execer.Execer()
         xonsh.built_ins.XSH.load(execer=execer, inherit_env=True)
-        xonsh.imphooks.install_import_hooks(execer=execer) 
- 
+        xonsh.imphooks.install_import_hooks(execer=execer)
+
         self.app: Application = None
-        
+
     async def enter_command_mode(self) -> None:
         self.app.layout.focus(self.command_buffer)
         self.app.vi_state.input_mode = InputMode.INSERT
@@ -105,35 +107,40 @@ class SnoEdit(object):
 
     async def run(self) -> None:
         def pre_run() -> None:
-            self.app.vi_state.input_mode = InputMode.NAVIGATION 
-        
+            self.app.vi_state.input_mode = InputMode.NAVIGATION
+
         await self._load_snorc_async()
-        
-        self.app = Application(layout=self.layout.layout, style=self.style, clipboard=self.clipboard,
-                               key_bindings=self.bindings, full_screen=True, editing_mode=EditingMode.VI)
-        
-        await self.active_buffer.focus() 
+
+        self.app = Application(
+            layout=self.layout.layout,
+            style=self.style,
+            clipboard=self.clipboard,
+            key_bindings=self.bindings,
+            full_screen=True,
+            editing_mode=EditingMode.VI,
+        )
+
+        await self.active_buffer.focus()
         await self.app.run_async(pre_run=pre_run)
-    
-     
+
     @property
     def colorscheme(self) -> str:
         return self._colorscheme
-    
+
     @colorscheme.setter
     def colorscheme(self, val) -> None:
         self._colorscheme = val
         self.pygments_class = get_style_by_name(self._colorscheme)
-     
+
     @property
     def pygments_class(self) -> None:
         return self._pygments_class
-    
+
     @pygments_class.setter
     def pygments_class(self, val) -> None:
         self._pygments_class = val
         _style = style_from_pygments_cls(self.pygments_class)
-            
+
         self._style_extra = Style.from_dict(
             {
                 "background": f"bg:{self.pygments_class.background_color}",
@@ -142,29 +149,24 @@ class SnoEdit(object):
                 "search": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
                 "selected": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
                 "completion-menu.completion.current": f"{self.pygments_class.highlight_color}",
-                "lsp-message-text": self.pygments_class.styles[Error]
+                "lsp-message-text": self.pygments_class.styles[Error],
             }
         )
-        
-        self.style = merge_styles(
-            [
-                _style,
-                self._style_extra
-            ]
-        )
-    
+
+        self.style = merge_styles([_style, self._style_extra])
+
     @property
     def style(self) -> Style:
         if not self._style:
             self.colorscheme = self._colorscheme
         return self._style
-    
+
     @style.setter
     def style(self, val) -> None:
         self._style = val
         if self.app:
             self.app.style = self._style
-        
+
     @property
     def show_line_numbers(self):
         return self._show_line_numbers
@@ -209,30 +211,31 @@ class SnoEdit(object):
     def display_unprintable_characters(self, value):
         self._display_unprintable_characters = bool(value)
         self.refresh_layout()
-        
-        
+
     @property
     def use_system_clipboard(self) -> bool:
         return self._use_system_clipboard
-    
+
     @use_system_clipboard.setter
     def use_system_clipboard(self, value) -> None:
         self._use_system_clipboard = bool(value)
         if self.app:
             self.app.clipboard = self.clipboard
-    
+
     @property
     def clipboard(self):
-        return PyperclipClipboard() if self._use_system_clipboard else InMemoryClipboard()
-    
+        return (
+            PyperclipClipboard() if self._use_system_clipboard else InMemoryClipboard()
+        )
+
     def log(self, text: str) -> None:
         self.log_handler.write(text)
         self.focus_log_buffer()
-        
+
     def clear_log(self) -> None:
         self.log_handler.clear()
         self.unfocus_log_buffer()
-        
+
     def focus_log_buffer(self) -> None:
         self.app.layout.focus(self.log_buffer)
         self.app.vi_state.input_mode = InputMode.NAVIGATION
@@ -240,7 +243,7 @@ class SnoEdit(object):
     def unfocus_log_buffer(self) -> None:
         self.app.layout.focus_last()
         self.app.vi_state.input_mode = InputMode.NAVIGATION
-    
+
     def reset_buffers(self) -> None:
         if has_focus(self.command_buffer):
             self.leave_command_mode()
@@ -272,20 +275,18 @@ class SnoEdit(object):
                 if not buffer.path == self.active_buffer.path:
                     self.select_buffer(path=path)
                 return
-        buffer = FileBuffer(
-            self,
-            os.path.abspath(path),
-            encoding
-        )
+        buffer = FileBuffer(self, os.path.abspath(path), encoding)
         await buffer.load()
         self.add_buffer(buffer)
 
-    def select_buffer(self, path=None, display_name: Optional[str]=None) -> None:
+    def select_buffer(self, path=None, display_name: Optional[str] = None) -> None:
         index = self.get_buffer_index(path=path, display_name=display_name)
         self.active_buffer = self.buffers[index]
         self.refresh_layout()
 
-    def get_buffer_index(self, path=None, display_name: Optional[str]=None) -> Optional[int]:
+    def get_buffer_index(
+        self, path=None, display_name: Optional[str] = None
+    ) -> Optional[int]:
         for i, buff in enumerate(self.buffers):
             if path and buff.path == os.path.abspath(path):
                 return i
@@ -304,7 +305,7 @@ class SnoEdit(object):
             if not await b.save():
                 break
 
-    async def close_current_buffer(self, buffer=None, forced: bool=False) -> bool:
+    async def close_current_buffer(self, buffer=None, forced: bool = False) -> bool:
         if not buffer:
             buffer = self.active_buffer
         if buffer.saved or forced:
@@ -316,7 +317,7 @@ class SnoEdit(object):
                 index = self.get_buffer_index(path=buffer.path)
                 buffer = self.buffers.pop(index)
                 await buffer.close()
-                self.active_buffer = self.buffers[index-1]
+                self.active_buffer = self.buffers[index - 1]
                 self.refresh_layout()
                 return True
         else:
@@ -325,7 +326,7 @@ class SnoEdit(object):
             self.log(get_string("not_saved"))
             return False
 
-    async def close_all_buffers(self, forced: bool=False) -> bool:
+    async def close_all_buffers(self, forced: bool = False) -> bool:
         for b in reversed(self.buffers):
             if not await self.close_current_buffer(buffer=b, forced=forced):
                 break
@@ -339,13 +340,15 @@ class SnoEdit(object):
             with open(self.home_dir / ".snorc") as rc:
                 with redirect_stdout(self.debug_buffer):
                     with redirect_stderr(self.debug_buffer):
-                        xonsh.built_ins.XSH.builtins.execx(rc.read(), glbs={"editor": self})
-    
+                        xonsh.built_ins.XSH.builtins.execx(
+                            rc.read(), glbs={"editor": self}
+                        )
+
     async def _load_snorc_async(self) -> None:
         await asyncify(self._load_snorc)()
-    
+
     def execx(self, code) -> None:
         xonsh.built_ins.XSH.builtins.execx(code, glbs={"editor": self})
-    
+
     async def aexecx(self, code) -> None:
         await asyncify(self.execx)(code)

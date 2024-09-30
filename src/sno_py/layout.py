@@ -2,52 +2,40 @@ import sys
 
 from prompt_toolkit.application import get_app
 from prompt_toolkit.filters import Condition, has_focus, is_searching
-from prompt_toolkit.layout import (
-    ConditionalContainer,
-    Float,
-    FloatContainer,
-    HSplit,
-    Layout,
-    VSplit,
-    Window,
-    WindowAlign,
-)
+from prompt_toolkit.layout import (ConditionalContainer, Float, FloatContainer,
+                                   HSplit, Layout, VSplit, Window, WindowAlign)
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.margins import ConditionalMargin, NumberedMargin
 from prompt_toolkit.layout.menus import CompletionsMenu
-from prompt_toolkit.layout.processors import (
-    BeforeInput,
-    HighlightSearchProcessor,
-    HighlightSelectionProcessor,
-    ShowTrailingWhiteSpaceProcessor,
-    TabsProcessor,
-)
+from prompt_toolkit.layout.processors import (BeforeInput,
+                                              HighlightSearchProcessor,
+                                              HighlightSelectionProcessor,
+                                              Processor,
+                                              ShowTrailingWhiteSpaceProcessor,
+                                              TabsProcessor, Transformation,
+                                              TransformationInput)
+from prompt_toolkit.layout.utils import explode_text_fragments
 from prompt_toolkit.lexers import DynamicLexer, PygmentsLexer
 from prompt_toolkit.widgets.toolbars import FormattedTextToolbar, SearchToolbar
-from prompt_toolkit.layout.processors import (
-    Processor,
-    Transformation,
-    TransformationInput,
-)
-from prompt_toolkit.layout.utils import explode_text_fragments
 
 from sno_py.vi_modes import get_input_mode
+
 
 class StatusBar(FormattedTextToolbar):
     def __init__(self, editor) -> None:
         super(StatusBar, self).__init__(
-            get_input_mode,
-            style="class:pygments.string class:container"
+            get_input_mode, style="class:pygments.string class:container"
         )
-        
+
+
 class StatusBarRuller(Window):
     def __init__(self, editor) -> None:
         super(StatusBarRuller, self).__init__(
             FormattedTextControl(
-                lambda: f" {editor.active_buffer.display_name}" + 
-                ("* | " if not editor.active_buffer.saved else " | ") +
-                f"{editor.filetype.guess_filetype(editor.active_buffer._path, editor.active_buffer.buffer_inst.document.text)} "
+                lambda: f" {editor.active_buffer.display_name}"
+                + ("* | " if not editor.active_buffer.saved else " | ")
+                + f"{editor.filetype.guess_filetype(editor.active_buffer._path, editor.active_buffer.buffer_inst.document.text)} "
                 f"- {editor.active_buffer.buffer_inst.document.cursor_position_row + 1},"
                 f"{editor.active_buffer.buffer_inst.document.cursor_position_col + 1}"
                 " "
@@ -56,6 +44,7 @@ class StatusBarRuller(Window):
             style="class:pygments.string class:container",
             height=1,
         )
+
 
 class CommandToolBar(ConditionalContainer):
     def __init__(self, editor) -> None:
@@ -125,12 +114,7 @@ class SnoLayout:
             vi_mode=True, search_buffer=editor.search_buffer
         )
         self.search_control = self.search_toolbar.control
-        self.status_bar = VSplit(
-            [
-                StatusBar(self.editor),
-                StatusBarRuller(self.editor)
-            ]
-        ) 
+        self.status_bar = VSplit([StatusBar(self.editor), StatusBarRuller(self.editor)])
 
     @property
     def layout(self):
@@ -213,7 +197,7 @@ class SnoLayout:
                     LogToolBar(self.editor),
                     self.search_toolbar,
                 ],
-                style="class:background"
+                style="class:background",
             )
         )
         return layout

@@ -1,9 +1,6 @@
-from lsp.client import LanguageClient
-from typing import (
-    List,
-    Optional,
-)
+from typing import List, Optional
 
+from lsp.client import LanguageClient
 
 class LanguageClientManager:
     def __init__(self) -> None: ...

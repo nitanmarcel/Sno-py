@@ -8,6 +8,7 @@ from prompt_toolkit.contrib.regular_languages.completion import \
 
 from sno_py import redirect
 
+
 @redirect.debug_stderr
 @redirect.debug_stdout
 def q(editor, *args, **kwargs):
@@ -48,17 +49,14 @@ async def o(editor, *args, **kwargs) -> None:
 @redirect.debug_stdout
 def o_completion_handler(editor, args: list):
     return GrammarCompleter(
-        compile("o\s+(?P<path>\S+)"),
-        {
-            "path": PathCompleter(expanduser=True)
-        }
+        compile("o\s+(?P<path>\S+)"), {"path": PathCompleter(expanduser=True)}
     )
 
 
 @redirect.debug_stderr
 @redirect.debug_stdout
 async def buffer(editor, *args, **kwargs) -> None:
-    if (args):
+    if args:
         editor.select_buffer(display_name=args[0])
 
 
@@ -67,11 +65,13 @@ async def buffer(editor, *args, **kwargs) -> None:
 def buffer_completion_handler(editor, args: list):
     return WordCompleter([b.display_name for b in editor.buffers])
 
+
 @redirect.log_stderr
 @redirect.log_stdout
 async def execx(editor, *args, **kwargs) -> None:
     await editor.aexecx(kwargs["_raw"])
-    
+
+
 class SnoCommand:
     def __init__(self, editor) -> None:
         self._editor = editor
@@ -126,12 +126,12 @@ class SnoCommand:
         self.add_command_handler(wa, "wa")
         self.add_command_handler([w, q], "wq")
         self.add_command_handler([wa, qa], "wqa")
+        self.add_command_handler(o, "o", completion_handler=o_completion_handler)
         self.add_command_handler(
-            o, "o", completion_handler=o_completion_handler)
-        self.add_command_handler(
-            buffer, "buffer", completion_handler=buffer_completion_handler)
+            buffer, "buffer", completion_handler=buffer_completion_handler
+        )
         self.add_command_handler(execx, "!")
-        
+
     def add_command_handler(self, func, name: str, completion_handler=None) -> None:
         if isinstance(name, list):
             for n in name:
@@ -149,8 +149,8 @@ class SnoCommand:
         parts = input_str.split()
 
         for part in parts:
-            if '=' in part:
-                key, value = part.split('=', 1)
+            if "=" in part:
+                key, value = part.split("=", 1)
                 try:
                     kwargs[key] = ast.literal_eval(value)
                 except (SyntaxError, ValueError):
@@ -178,7 +178,8 @@ class SnoCommand:
                 completer_handler = self.get_completion_handler(split[0])
                 if completer_handler:
                     completer = completer_handler(
-                        self._editor, split if len(split) > 1 else [])
+                        self._editor, split if len(split) > 1 else []
+                    )
             else:
                 completer = None
         else:
@@ -190,6 +191,4 @@ class SnoCommand:
 
     @property
     def default_completer(self):
-        return WordCompleter(
-            words=self._handlers.keys()
-        )
+        return WordCompleter(words=self._handlers.keys())

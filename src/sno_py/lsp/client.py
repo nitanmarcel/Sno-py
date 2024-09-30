@@ -2,22 +2,23 @@ import asyncio
 import contextlib
 import pathlib
 import subprocess
-from typing import List, Optional, Type, AsyncGenerator, Coroutine
 from dataclasses import dataclass
+from typing import AsyncGenerator, Coroutine, List, Optional, Type
 
 import sansio_lsp_client as lsp
-from pydantic import parse_obj_as
+from pydantic import BaseModel, parse_obj_as
 from sansio_lsp_client.io_handler import _make_request, _make_response
 from sansio_lsp_client.structs import JSONDict, Request
-from pydantic import BaseModel
 
-class LanguageServerCrashed(Exception):
-    ...
-    
+
+class LanguageServerCrashed(Exception): ...
+
+
 @dataclass
 class NotificationHandler:
     of_type: BaseModel
     func: Coroutine
+
 
 # CC: https://github.com/dsanders11/chromium-include-cleanup/blob/25ff1861ae8ce9cd0ebd4caa2a5c9c524def9b23/clangd_lsp.py#L60
 class AsyncSendLspClient(lsp.Client):
@@ -35,7 +36,9 @@ class AsyncSendLspClient(lsp.Client):
         self._unanswered_requests[id] = Request(id=id, method=method, params=params)
         return id
 
-    def _send_notification(self, method: str, params: Optional[JSONDict] = None) -> None:
+    def _send_notification(
+        self, method: str, params: Optional[JSONDict] = None
+    ) -> None:
         self._ensure_send_buf_is_queue()
         self._send_buf.put_nowait(_make_request(method=method, params=params))
 
@@ -60,13 +63,15 @@ class AsyncSendLspClient(lsp.Client):
             elif issubclass(event_cls, lsp.ServerNotification):
                 return parse_obj_as(event_cls, request.params)
             else:
-                raise TypeError("`event_cls` must be a subclass of ServerRequest" " or ServerNotification")
+                raise TypeError(
+                    "`event_cls` must be a subclass of ServerRequest"
+                    " or ServerNotification"
+                )
 
         return super()._handle_request(request)
 
     async def async_send(self) -> bytes:
         return await self._send_buf.get()
-
 
 
 # Partially based on sansio-lsp-client/tests/test_actual_langservers.py
@@ -85,7 +90,7 @@ class LspClient:
         self._notification_queues = []
         self._process_gone = asyncio.Event()
         self._notification_handlers = []
-        
+
         self._signature_triggers = []
 
     async def _send_stdin(self):
@@ -145,12 +150,17 @@ class LspClient:
         )
 
         self._concurrent_tasks = asyncio.gather(
-            self._send_stdin(), self._process_stdout(), self._log_stderr(), return_exceptions=True
+            self._send_stdin(),
+            self._process_stdout(),
+            self._log_stderr(),
+            return_exceptions=True,
         )
 
         initialized = await self._wait_for_message_of_type(lsp.Initialized)
-        self._signature_triggers = initialized.capabilities.get('signatureHelpProvider', {}).get('triggerCharacters', [])
-        
+        self._signature_triggers = initialized.capabilities.get(
+            "signatureHelpProvider", {}
+        ).get("triggerCharacters", [])
+
     def _try_default_reply(self, msg):
         if isinstance(
             msg,
@@ -179,7 +189,9 @@ class LspClient:
     async def _wrap_coro(self, coro):
         process_gone_task = asyncio.create_task(self._process_gone.wait())
         task = asyncio.create_task(coro)
-        done, _ = await asyncio.wait({task, process_gone_task}, return_when=asyncio.FIRST_COMPLETED)
+        done, _ = await asyncio.wait(
+            {task, process_gone_task}, return_when=asyncio.FIRST_COMPLETED
+        )
 
         if process_gone_task in done:
             task.cancel()
@@ -202,7 +214,8 @@ class LspClient:
                 while not cancellation_token.is_set():
                     queue_task = asyncio.create_task(self._wrap_coro(queue.get()))
                     done, _ = await asyncio.wait(
-                        {queue_task, cancellation_token_task}, return_when=asyncio.FIRST_COMPLETED
+                        {queue_task, cancellation_token_task},
+                        return_when=asyncio.FIRST_COMPLETED,
                     )
 
                     if cancellation_token_task in done:
@@ -217,17 +230,21 @@ class LspClient:
         yield get_notifications()
         cancellation_token.set()
         self._notification_queues.remove(queue)
-        
+
     async def listen_for_notifications(self, cancellation_token: asyncio.Event):
-        async with self._listen_for_notifications(cancellation_token=cancellation_token) as notifier:
+        async with self._listen_for_notifications(
+            cancellation_token=cancellation_token
+        ) as notifier:
             async for notification in notifier:
                 for handler in self._notification_handlers:
                     if isinstance(notification, handler.of_type):
                         await handler.func(notification)
-        
+
     def add_notification_handler(self, of_type: BaseModel, func: Coroutine):
-        self._notification_handlers.append(NotificationHandler(of_type=of_type, func=func))
-    
+        self._notification_handlers.append(
+            NotificationHandler(of_type=of_type, func=func)
+        )
+
     def remove_notification_handler(self, of_type: BaseModel, func: Coroutine):
         for handler in self._notification_handlers:
             if handler.of_type == of_type and handler.func == func:
@@ -239,7 +256,9 @@ class LspClient:
         # TODO - Check for a valid config with IncludeCleaner setup
         return True
 
-    def open_document(self, language_id: str, file_path: str, file_contents: str) -> lsp.TextDocumentItem:
+    def open_document(
+        self, language_id: str, file_path: str, file_contents: str
+    ) -> lsp.TextDocumentItem:
         document = lsp.TextDocumentItem(
             uri=pathlib.Path(file_path).as_uri(),
             languageId=language_id,
@@ -258,7 +277,13 @@ class LspClient:
             )
         )
 
-    def change_document(self, file_path: str, version: int, text: str, want_diagnostics: Optional[bool] = None):
+    def change_document(
+        self,
+        file_path: str,
+        version: int,
+        text: str,
+        want_diagnostics: Optional[bool] = None,
+    ):
         text_document = lsp.VersionedTextDocumentIdentifier(
             uri=pathlib.Path(file_path).as_uri(),
             version=version,
@@ -287,47 +312,54 @@ class LspClient:
                 uri=pathlib.Path(document_path).as_uri(),
             )
         )
-        
-    async def request_completion(self, file_path: str, line: int, character: int) -> AsyncGenerator[lsp.CompletionItem, None]:
-       self.lsp_client.completion(
-           text_document_position=lsp.TextDocumentPosition(
-               textDocument=lsp.TextDocumentIdentifier(
-                   uri=pathlib.Path(file_path).as_uri()
-               ),
-               position=lsp.Position(line=line, character=character)
-           ),
-           context=lsp.CompletionContext(
-               triggerKind=lsp.CompletionTriggerKind.INVOKED
-           )
-       )
-       for item in (await self._wait_for_message_of_type(lsp.Completion)).completion_list.items:
-           yield item
-           
+
+    async def request_completion(
+        self, file_path: str, line: int, character: int
+    ) -> AsyncGenerator[lsp.CompletionItem, None]:
+        self.lsp_client.completion(
+            text_document_position=lsp.TextDocumentPosition(
+                textDocument=lsp.TextDocumentIdentifier(
+                    uri=pathlib.Path(file_path).as_uri()
+                ),
+                position=lsp.Position(line=line, character=character),
+            ),
+            context=lsp.CompletionContext(
+                triggerKind=lsp.CompletionTriggerKind.INVOKED
+            ),
+        )
+        for item in (
+            await self._wait_for_message_of_type(lsp.Completion)
+        ).completion_list.items:
+            yield item
+
     async def request_signature(self, file_path: str, line: int, character: int):
         self.lsp_client.signatureHelp(
-           text_document_position=lsp.TextDocumentPosition(
-               textDocument=lsp.TextDocumentIdentifier(
-                   uri=pathlib.Path(file_path).as_uri()
-               ),
-               position=lsp.Position(line=line, character=character)
-           ),
+            text_document_position=lsp.TextDocumentPosition(
+                textDocument=lsp.TextDocumentIdentifier(
+                    uri=pathlib.Path(file_path).as_uri()
+                ),
+                position=lsp.Position(line=line, character=character),
+            ),
         )
-        
+
         signature = await self._wait_for_message_of_type(lsp.SignatureHelp)
         return signature.get_hint_str()
-    
+
     @property
     def signature_triggers(self):
         return self._signature_triggers
-       
+
     async def exit(self):
         if self._process:
             try:
                 if self._process.returncode is None and not self._process_gone.is_set():
                     self.lsp_client.shutdown()
-                    shutdown_task = asyncio.create_task(self._wait_for_message_of_type(lsp.Shutdown, timeout=None))
+                    shutdown_task = asyncio.create_task(
+                        self._wait_for_message_of_type(lsp.Shutdown, timeout=None)
+                    )
                     done, _ = await asyncio.wait(
-                        {shutdown_task, self._concurrent_tasks}, return_when=asyncio.FIRST_COMPLETED
+                        {shutdown_task, self._concurrent_tasks},
+                        return_when=asyncio.FIRST_COMPLETED,
                     )
                     if shutdown_task in done:
                         self.lsp_client.exit()

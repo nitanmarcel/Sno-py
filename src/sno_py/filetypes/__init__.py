@@ -9,8 +9,7 @@ class FileType:
     def __init__(self) -> None:
         self.defaults = filetype_defaults
 
-    def guess_filetype(
-            self, file_path, content) -> Union[str, Literal["file"]]:
+    def guess_filetype(self, file_path, content) -> Union[str, Literal["file"]]:
         filename = os.path.basename(file_path)
 
         extension_matches = []
@@ -21,24 +20,19 @@ class FileType:
                     patterns.get("pattern"), filename
                 )
                 if filename_score > 0:
-                    extension_matches.append(
-                        (filetype, patterns, filename_score))
+                    extension_matches.append((filetype, patterns, filename_score))
         if not extension_matches:
             return "file"
 
         content_scores = []
         for filetype, patterns, filename_score in extension_matches:
             if "file_pattern" in patterns:
-                content_score = self._calculate_score(
-                    patterns["file_pattern"], content)
-                content_scores.append(
-                    (filetype, content_score, filename_score))
+                content_score = self._calculate_score(patterns["file_pattern"], content)
+                content_scores.append((filetype, content_score, filename_score))
             else:
                 content_scores.append((filetype, 0.1, filename_score))
 
-        sorted_scores = sorted(
-            content_scores, key=lambda x: (
-                x[1], x[2]), reverse=True)
+        sorted_scores = sorted(content_scores, key=lambda x: (x[1], x[2]), reverse=True)
 
         result = sorted_scores[0][0]
         return result

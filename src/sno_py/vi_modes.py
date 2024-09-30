@@ -1,8 +1,8 @@
-from strenum import StrEnum
-
 from prompt_toolkit.application import get_app
 from prompt_toolkit.key_binding.vi_state import InputMode
 from prompt_toolkit.selection import SelectionType
+from strenum import StrEnum
+
 
 class ViMode(StrEnum):
     NORMAL = "-- NORMAL --"
@@ -18,9 +18,9 @@ class ViMode(StrEnum):
 def get_input_mode() -> ViMode:
     input_mode = get_app().vi_state.input_mode
     selection_state = get_app().current_buffer.selection_state
-    
+
     vi_mode = ViMode.NORMAL
-    
+
     match input_mode:
         case InputMode.INSERT:
             vi_mode = ViMode.INSERT

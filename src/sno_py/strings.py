@@ -1,8 +1,7 @@
-
 _STRINGS = {
     "not_saved": "No write since last change",
     "read_only": "Buffer is read only",
-    "unknown_error": "Unknown error"
+    "unknown_error": "Unknown error",
 }
 
 

@@ -23,8 +23,7 @@ filetype_defaults = [
         }
     },
     {"go": {"pattern": r".*\.go"}},
-    {"fsharp": {"file_pattern": r"^(: |new-device)",
-                "pattern": r".*[.](fs|fsx|fsi)"}},
+    {"fsharp": {"file_pattern": r"^(: |new-device)", "pattern": r".*[.](fs|fsx|fsi)"}},
     {"cabal": {"pattern": r".*[.](cabal)"}},
     {"meson": {"pattern": r"(.*/|^)(meson\.build|meson_options\.txt)"}},
     {"eruby": {"pattern": r"'.*\.erb'"}},
@@ -96,15 +95,13 @@ filetype_defaults = [
     {"coq": {"file_pattern": r"\A##fileformat=VCF", "pattern": r".*\.v"}},
     {"hare": {"pattern": r".*[.]ha"}},
     {"cue": {"pattern": r".*[.](cue)"}},
-    {"groovy": {
-        "pattern": r'"(.+\.(groovy|gvy|gy|gsh|gradle))|.+[Jj]enkinsfile.*"'}},
+    {"groovy": {"pattern": r'"(.+\.(groovy|gvy|gy|gsh|gradle))|.+[Jj]enkinsfile.*"'}},
     {"moon": {"pattern": r".*[.](moon)"}},
     {"elm": {"pattern": r".*[.](gren)"}},
     {"glep42": {"pattern": r".*/metadata/news/.*/.*\.txt"}},
     {"diff": {"pattern": r".*\.(diff|patch)"}},
     {"toml": {"pattern": r".*\.(toml)"}},
-    {"pascal": {"file_pattern": r"^\s*end[.;]",
-                "pattern": r".*\.(p|pp|pas|pascal)$"}},
+    {"pascal": {"file_pattern": r"^\s*end[.;]", "pattern": r".*\.(p|pp|pas|pascal)$"}},
     {"delphi": {"pattern": r".*\.(dpr|dpk|dfm)$"}},
     {"freepascal": {"pattern": r".*\.(lpr|lfm)$"}},
     {"haskell": {"pattern": r".*[.](hs)"}},
@@ -117,8 +114,7 @@ filetype_defaults = [
     {"php": {"file_pattern": r"<\?hh", "pattern": r".*[.](phpt?)"}},
     {"makefile": {"pattern": r".*(/?[mM]akefile|\.mk|\.make)"}},
     {"crystal": {"pattern": r"'.*\.cr'"}},
-    {"yaml": {
-        "file_pattern": r"^\t+.*?[^\s:].*?:", "pattern": r".*[.](ya?ml)"}},
+    {"yaml": {"file_pattern": r"^\t+.*?[^\s:].*?:", "pattern": r".*[.](ya?ml)"}},
     {"sml": {"pattern": r".*\.(sml|fun|sig)"}},
     {"clojure": {"pattern": r".*[.](clj|cljc|cljs|cljx|edn)"}},
     {"taskpaper": {"pattern": r".*\.taskpaper"}},
@@ -171,8 +167,7 @@ filetype_defaults = [
             "pattern": r".*\.(t|p[lm])$",
         }
     },
-    {"mercury": {
-        "file_pattern": r"^[.'][A-Za-z]{2}(\s|$)", "pattern": r".*[.](m)"}},
+    {"mercury": {"file_pattern": r"^[.'][A-Za-z]{2}(\s|$)", "pattern": r".*[.](m)"}},
     {"elvish": {"pattern": r".*\.elv"}},
     {"kotlin": {"pattern": r".*[.](kt|kts) "}},
     {"cmake": {"pattern": r".+\.cmake|.*/CMakeLists.txt"}},
@@ -191,8 +186,7 @@ filetype_defaults = [
     },
     {"dockerfile": {"pattern": r".*/?Dockerfile(\..+)?$"}},
     {"latex": {"pattern": r".*\.(tex|cls|sty|dtx)"}},
-    {"typst": {
-        "file_pattern": r"^#(import|show|let|set)", "pattern": r".*[.](typ)"}},
+    {"typst": {"file_pattern": r"^#(import|show|let|set)", "pattern": r".*[.](typ)"}},
     {"fidl": {"pattern": r".*\.fidl"}},
     {"fish": {"pattern": r".*[.](fish)"}},
     {
@@ -209,8 +203,7 @@ filetype_defaults = [
     {"fennel": {"pattern": r".*[.]fnl"}},
     {"mlb": {"pattern": r".*\.mlb"}},
     {"ninja": {"pattern": r".+\.ninja"}},
-    {"json": {
-        "file_pattern": r'"swagger":\s?"2.[0-9.]+"', "pattern": r".*[.](json)"}},
+    {"json": {"file_pattern": r'"swagger":\s?"2.[0-9.]+"', "pattern": r".*[.](json)"}},
     {"pug": {"pattern": r".*[.](pug|jade)"}},
     {"terraform": {"pattern": r".*[.](tf|tfvars)"}},
     {"restructuredtext": {"pattern": r".*[.](rst)"}},

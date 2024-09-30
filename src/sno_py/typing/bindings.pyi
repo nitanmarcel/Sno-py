@@ -1,6 +1,5 @@
 from sno_py.snoedit import SnoEdit
 
-
 class SnoBinds:
     def __init__(self, editor: SnoEdit) -> None: ...
     def _create_defaults(self) -> SnoBinds: ...
