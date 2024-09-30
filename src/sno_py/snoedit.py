@@ -26,6 +26,7 @@ from sno_py.bindings import SnoBinds
 from sno_py.buffer import DebugBuffer, FileBuffer, LogBuffer, SnooBuffer
 from sno_py.color_utils import adjust_color_brightness
 from sno_py.filetypes import FileType
+from sno_py.filters import Filters
 from sno_py.layout import SnoLayout
 from sno_py.lsp.manager import LanguageClientManager
 from sno_py.singleton import singleton
@@ -44,6 +45,7 @@ class SnoEdit(object):
         self._create_base_dirs()
 
         self.filetype = FileType()
+        self.filters = Filters(self)
         self.lsp = LanguageClientManager(self)
 
         self.command_runner = SnoCommand(self)
@@ -118,6 +120,7 @@ class SnoEdit(object):
             key_bindings=self.bindings,
             full_screen=True,
             editing_mode=EditingMode.VI,
+            mouse_support=True
         )
 
         await self.active_buffer.focus()
@@ -150,6 +153,7 @@ class SnoEdit(object):
                 "selected": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
                 "completion-menu.completion.current": f"{self.pygments_class.highlight_color}",
                 "lsp-message-text": self.pygments_class.styles[Error],
+                "vertmenu.selected": f"bg:{self.pygments_class.highlight_color} {self.pygments_class.styles[String]}"
             }
         )
 
@@ -330,7 +334,15 @@ class SnoEdit(object):
         for b in reversed(self.buffers):
             if not await self.close_current_buffer(buffer=b, forced=forced):
                 break
-
+            
+    def show_tree_menu(self):
+        self.filters.tree_menu_toggle()
+        self.app.layout.focus(self.layout.directory_tree)
+    
+    def close_tree_menu(self):
+        self.filters.tree_menu_toggle()
+        self.app.layout.focus_next()
+            
     def refresh_layout(self) -> None:
         if self.app:
             self.app.layout = self.layout.layout

@@ -6,6 +6,8 @@ from prompt_toolkit.filters import (Condition, vi_insert_mode,
 class Filters:
     def __init__(self, editor) -> None:
         self._editor = editor
+        
+        self._is_tree_menu_toggled = False
 
         class _Conditions:
             @Condition
@@ -32,10 +34,20 @@ class Filters:
                 return _Conditions.vi_buffer_focused() and app.layout.has_focus(
                     self._editor.command_buffer
                 )
+            
+            @Condition
+            def tree_menu_toggled():
+                return self._is_tree_menu_toggled
 
         self.vi_buffer_focused = _Conditions.vi_buffer_focused
         self.is_command_mode = _Conditions.vi_command_focused
         self.is_log_mode = _Conditions.vi_log_focused
 
         self.is_navigation_mode = vi_navigation_mode
-        self.vi_insert_mode = vi_insert_mode
+        self.vi_insert_mode = vi_insert_mode  
+        self.tree_menu_toggled = _Conditions.tree_menu_toggled
+        
+    
+    def tree_menu_toggle(self):
+        self._is_tree_menu_toggled = not self._is_tree_menu_toggled
+        return self._is_tree_menu_toggled

@@ -1,7 +1,13 @@
+import asyncio
+import os
 import sys
+from typing import Callable, Iterable, Optional
 
+import anyio
+import ptvertmenu
 from prompt_toolkit.application import get_app
 from prompt_toolkit.filters import Condition, has_focus, is_searching
+from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import (ConditionalContainer, Float, FloatContainer,
                                    HSplit, Layout, VSplit, Window, WindowAlign)
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
@@ -20,6 +26,92 @@ from prompt_toolkit.lexers import DynamicLexer, PygmentsLexer
 from prompt_toolkit.widgets.toolbars import FormattedTextToolbar, SearchToolbar
 
 from sno_py.vi_modes import get_input_mode
+
+
+class TreeItem:
+    def __init__(self, name, path, is_dir, is_root=False):
+        self.name = name
+        self.path = path
+        self.is_dir = is_dir
+        self.children = []
+        self.expanded = is_root
+        self.is_root = is_root
+
+
+class TreeDirectoryMenu(ConditionalContainer):
+    def __init__(self, editor) -> None:
+        self.editor = editor
+        self.root = self.build_tree(".", is_root=True)
+        self.menu_items = self.get_menu_items()
+
+        self.menu = ptvertmenu.VertMenu(
+            items=self.menu_items, accept_handler=self.accept_handler
+        )
+
+        super().__init__(self.menu, filter=editor.filters.tree_menu_toggled)
+
+    def build_tree(self, path, is_root=False):
+        root = TreeItem(os.path.basename(path), path, True, is_root)
+        for item in sorted(os.listdir(path)):
+            full_path = os.path.join(path, item)
+            if os.path.isdir(full_path):
+                root.children.append(self.build_tree(full_path))
+            else:
+                root.children.append(TreeItem(item, full_path, False))
+        return root
+
+    def get_menu_items(self, node=None, level=0):
+        if node is None:
+            node = self.root
+
+        items = []
+        prefix = "  " * level
+        if node.is_dir:
+            if node.is_root:
+                # For root, always show as expanded and don't include in the menu
+                for child in node.children:
+                    items.extend(self.get_menu_items(child, level))
+            else:
+                icon = "▼" if node.expanded else "▶"
+                items.append((f"{prefix}{icon} {node.name}", node.path))
+                if node.expanded:
+                    for child in node.children:
+                        items.extend(self.get_menu_items(child, level + 1))
+        else:
+            items.append((f"{prefix}{node.name}", node.path))
+        return items
+
+    def accept_handler(self, item):
+        path = item[1]
+        if os.path.isdir(path):
+            self.toggle_directory(path)
+        else:
+            asyncio.create_task(self.editor.create_file_buffer(path))
+            self.editor.close_tree_menu()
+
+    def toggle_directory(self, dir_path):
+        node = self.find_node(self.root, dir_path)
+        if node and not node.is_root:
+            node.expanded = not node.expanded
+            self.menu_items = self.get_menu_items()
+            self.menu.items = self.menu_items
+
+            toggled_index = next(
+                (i for i, item in enumerate(self.menu_items) if item[1] == dir_path),
+                None,
+            )
+            if toggled_index is not None:
+                self.menu.selected_item = self.menu_items[toggled_index]
+
+    def find_node(self, node, path):
+        if node.path == path:
+            return node
+        if node.is_dir:
+            for child in node.children:
+                found = self.find_node(child, path)
+                if found:
+                    return found
+        return None
 
 
 class StatusBar(FormattedTextToolbar):
@@ -115,12 +207,14 @@ class SnoLayout:
         )
         self.search_control = self.search_toolbar.control
         self.status_bar = VSplit([StatusBar(self.editor), StatusBarRuller(self.editor)])
+        self.directory_tree = TreeDirectoryMenu(self.editor)
 
     @property
     def layout(self):
         fc = FloatContainer(
             content=VSplit(
                 [
+                    self.directory_tree,
                     Window(
                         BufferControl(
                             buffer=self.editor.active_buffer.buffer_inst,
@@ -171,7 +265,7 @@ class SnoLayout:
                                 filter=Condition(lambda: self.editor.show_line_numbers),
                             )
                         ],
-                    )
+                    ),
                 ]
             ),
             floats=[
@@ -198,7 +292,8 @@ class SnoLayout:
                     self.search_toolbar,
                 ],
                 style="class:background",
-            )
+            ),
+            focused_element=self.editor.active_buffer.buffer_inst,
         )
         return layout
 

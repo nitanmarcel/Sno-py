@@ -15,6 +15,9 @@ It's not so featured, it's missing a lot of things mainly because I don't use th
 - lsp client powered by [sansio-lsp-client](https://github.com/PurpleMyst/sansio-lsp-client]
 - bugs. yeah they are features too in my book
 
+### Shortcuts
+- `c-d` toggle tree explorer
+
 ## Credits
 - [prompt-toolkit](https://github.com/prompt-toolkit)
 - [xonsh](https://github.com/xonsh/xonsh)
