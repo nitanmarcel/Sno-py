@@ -285,7 +285,7 @@ class SnoEdit(object):
 
     def select_buffer(self, path=None, display_name: Optional[str] = None) -> None:
         index = self.get_buffer_index(path=path, display_name=display_name)
-        if index:
+        if index >= 0:
             self.active_buffer = self.buffers[index]
             self.refresh_layout()
         else:
@@ -299,7 +299,7 @@ class SnoEdit(object):
                 return i
             if display_name and buff.display_name == display_name:
                 return i
-        return None
+        return -1
 
     async def save_current_buffer(self) -> None:
         if not await self.active_buffer.save():
