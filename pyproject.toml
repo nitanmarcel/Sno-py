@@ -1,38 +1,29 @@
-[project]
-name = "sno-py"
+[tool.poetry]
+name = "snoo-py"
 version = "0.1.0"
-description = "Add your description here"
-authors = [
-    { name = "Marcel Alexandru Nitan", email = "nitan.marcel@protonmail.com" }
-]
-dependencies = [
-    "prompt-toolkit>=3.0.47",
-    "pygments>=2.18.0",
-    "appdirs>=1.4.4",
-    "xonsh[full]>=0.18.3",
-    "strenum>=0.4.15",
-    "asyncer>=0.0.8",
-    "typing-extensions>=4.12.2",
-    "pyclip>=0.7.0",
-    "sansio-lsp-client>=0.12.0",
-    "markdown>=3.7",
-]
-readme = "README.md"
-requires-python = ">= 3.8"
+description = "Personal vim like file editor. Because Why Not?"
+authors = ["Marcel Alexandru Nitan <nitan.marcel@protonmail.com>"]
+license = "MIT"
+packages = [{include = "sno_py", from="src"}]
 
-[project.scripts]
+[tool.poetry.dependencies]
+python = "^3.10"
+prompt-toolkit = "^3.0.48"
+pygments = "^2.18.0"
+appdirs = "^1.4.4"
+xonsh = {extras = ["full"], version = "^0.18.3"}
+strenum = "^0.4.15"
+asyncer = "^0.0.8"
+typing-extensions = "^4.12.2"
+sansio-lsp-client = "^0.12.0"
+markdown = "^3.7"
+ptvertmenu = {git = "https://github.com/lpenz/ptvertmenu"}
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.scripts]
 "sno-py" = "sno_py:main"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.rye]
-managed = true
-dev-dependencies = []
-
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/sno_py"]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
