@@ -47,7 +47,7 @@ class SnoBinds(KeyBindings):
         @self.add("c-d", filter=~self.editor.filters.tree_menu_toggled)
         def show_tree(event):
             self.editor.show_tree_menu()
-        
+
         @self.add("c-d", filter=self.editor.filters.tree_menu_toggled)
         async def close_tree(event):
             self.editor.close_tree_menu()

@@ -275,7 +275,6 @@ class SnoLayout:
                     content=CompletionsMenu(
                         max_height=12,
                         scroll_offset=2,
-                        extra_filter=~has_focus(self.editor.command_buffer),
                     ),
                 )
             ],

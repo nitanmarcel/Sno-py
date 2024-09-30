@@ -71,7 +71,7 @@ class SnoEdit(object):
         self.bindings = SnoBinds(self)
         self.layout = SnoLayout(self)
 
-        self._colorscheme = "monokai"
+        self._colorscheme = "vim"
         self._pygments_class = None
         self._style: Style = None
 
@@ -285,8 +285,11 @@ class SnoEdit(object):
 
     def select_buffer(self, path=None, display_name: Optional[str] = None) -> None:
         index = self.get_buffer_index(path=path, display_name=display_name)
-        self.active_buffer = self.buffers[index]
-        self.refresh_layout()
+        if index:
+            self.active_buffer = self.buffers[index]
+            self.refresh_layout()
+        else:
+            self.log(f"No such buffer {display_name or path}")
 
     def get_buffer_index(
         self, path=None, display_name: Optional[str] = None
