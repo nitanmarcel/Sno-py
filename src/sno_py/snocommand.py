@@ -57,13 +57,13 @@ def o_completion_handler(editor, args: list):
 @redirect.debug_stdout
 async def buffer(editor, *args, **kwargs) -> None:
     if args:
-        editor.select_buffer(display_name=args[0])
+        editor.select_buffer(args[0])
 
 
 @redirect.debug_stderr
 @redirect.debug_stdout
 def buffer_completion_handler(editor, args: list):
-    return WordCompleter([b.display_name for b in editor.buffers])
+    return WordCompleter([b.display_name_with_index for b in editor.buffers])
 
 
 @redirect.log_stderr

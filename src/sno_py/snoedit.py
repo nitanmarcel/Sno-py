@@ -1,4 +1,5 @@
 import os
+import re
 import shlex
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -270,16 +271,12 @@ class SnoEdit(object):
             self.clear_log()
 
     def add_buffer(self, buffer: SnooBuffer) -> None:
-        if buffer.display_name in [b for b in self.buffers]:
-            i = 1
-            for b in self.buffers:
-                if b.display_name == buffer.display_name:
-                    buffer.display_name += f" ({i}) "
-                    i += 1
-        if len(self.buffers) == 0:
+        if buffer.display_name in [b.display_name for b in self.buffers]:
+            buffer.display_name = buffer.display_name_with_index
+        if not self.buffers:
             self.buffers.append(buffer)
         else:
-            index = self.get_buffer_index(path=self.active_buffer.path)
+            index = self.active_buffer.index
             self.buffers.insert(index, buffer)
         self.active_buffer = buffer
         self.refresh_layout()
@@ -287,34 +284,30 @@ class SnoEdit(object):
             self.log(get_string("read_only"))
 
     async def create_file_buffer(self, path: str, encoding: str = "utf-8") -> None:
-        if not path:
-            return
-        for buffer in self.buffers:
-            if buffer.path == os.path.abspath(path):
-                if not buffer.path == self.active_buffer.path:
-                    self.select_buffer(path=path)
+        try:
+            if not path:
                 return
-        buffer = FileBuffer(self, os.path.abspath(path), encoding)
-        await buffer.load()
-        self.add_buffer(buffer)
-
-    def select_buffer(self, path=None, display_name: Optional[str] = None) -> None:
-        index = self.get_buffer_index(path=path, display_name=display_name)
-        if index >= 0:
-            self.active_buffer = self.buffers[index]
-            self.refresh_layout()
-        else:
-            self.log(f"No such buffer {display_name or path}")
-
-    def get_buffer_index(
-        self, path=None, display_name: Optional[str] = None
-    ) -> Optional[int]:
-        for i, buff in enumerate(self.buffers):
-            if path and buff.path == os.path.abspath(path):
-                return i
-            if display_name and buff.display_name == display_name:
-                return i
-        return -1
+            for buffer in self.buffers:
+                if buffer.path == os.path.abspath(path):
+                    if not buffer.path == self.active_buffer.path:
+                        self.select_buffer(buffer.index)
+                        return
+            buffer = FileBuffer(self, os.path.abspath(path), encoding)
+            await buffer.load()
+            self.add_buffer(buffer)
+        except Exception as e:
+            if isinstance(e, IsADirectoryError):
+                self.log(str(e))
+    
+    def select_buffer(self, index):
+        if isinstance(index, str):
+            pattern = re.compile(r"\[(\d+)\]")
+            match = pattern.search(index)
+            if match:
+                index = int(match.group(1))
+                
+        self.active_buffer = self.buffers[index]
+        self.refresh_layout()
 
     async def save_current_buffer(self) -> None:
         if not await self.active_buffer.save():
@@ -337,7 +330,7 @@ class SnoEdit(object):
                 get_app().exit()
                 return True
             else:
-                index = self.get_buffer_index(path=buffer.path)
+                index = buffer.index
                 buffer = self.buffers.pop(index)
                 await buffer.close()
                 self.active_buffer = self.buffers[index - 1]
@@ -345,7 +338,7 @@ class SnoEdit(object):
                 return True
         else:
             if len(self.buffers) > 1:
-                await self.select_buffer(path=buffer.path)
+                await self.select_buffer(buffer.index)
             self.log(get_string("not_saved"))
             return False
 
@@ -372,8 +365,10 @@ class SnoEdit(object):
             
     def refresh_layout(self) -> None:
         if self.app:
-            self.app.layout = self.layout.layout
+            for buffer in self.buffers:
+                buffer.reindex()
             self.app.invalidate()
+            self.app.layout = self.layout.layout
 
     def _load_snorc(self) -> None:
         if os.path.isfile(self.home_dir / ".snorc"):
