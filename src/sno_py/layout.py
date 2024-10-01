@@ -61,6 +61,7 @@ class TreeItem:
         self.children = []
         self.expanded = is_root
         self.is_root = is_root
+        self.loaded = False
 
 
 class TreeDirectoryMenu(ConditionalContainer):
@@ -79,13 +80,19 @@ class TreeDirectoryMenu(ConditionalContainer):
 
     def build_tree(self, path, is_root=False):
         root = TreeItem(os.path.basename(path), path, True, is_root)
-        for item in sorted(os.listdir(path)):
-            full_path = os.path.join(path, item)
-            if os.path.isdir(full_path):
-                root.children.append(self.build_tree(full_path))
-            else:
-                root.children.append(TreeItem(item, full_path, False))
+        if is_root:
+            self.load_directory(root)
         return root
+
+    def load_directory(self, node):
+        if not node.loaded:
+            for item in sorted(os.listdir(node.path)):
+                full_path = os.path.join(node.path, item)
+                if os.path.isdir(full_path):
+                    node.children.append(TreeItem(item, full_path, True))
+                else:
+                    node.children.append(TreeItem(item, full_path, False))
+            node.loaded = True
 
     def get_menu_items(self, node=None, level=0):
         if node is None:
@@ -95,7 +102,6 @@ class TreeDirectoryMenu(ConditionalContainer):
         prefix = "  " * level
         if node.is_dir:
             if node.is_root:
-                # For root, always show as expanded and don't include in the menu
                 for child in node.children:
                     items.extend(self.get_menu_items(child, level))
             else:
@@ -108,7 +114,7 @@ class TreeDirectoryMenu(ConditionalContainer):
                 else:
                     icon = "▼" if node.expanded else "▶"
                 items.append((f"{prefix}{icon} {node.name}", node.path))
-                if node.expanded:
+                if node.expanded and node.loaded:
                     for child in node.children:
                         items.extend(self.get_menu_items(child, level + 1))
         else:
@@ -131,6 +137,11 @@ class TreeDirectoryMenu(ConditionalContainer):
         node = self.find_node(self.root, dir_path)
         if node and not node.is_root:
             node.expanded = not node.expanded
+            if node.expanded and not node.loaded:
+                self.load_directory(node)
+            elif not node.expanded:
+                node.children = []
+                node.loaded = False
             self.menu_items = self.get_menu_items()
             self.menu.items = self.menu_items
 
