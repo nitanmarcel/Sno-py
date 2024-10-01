@@ -8,6 +8,7 @@ class Filters:
         self._editor = editor
         
         self._is_tree_menu_toggled = False
+        self._is_terminal_toggled = False
 
         class _Conditions:
             @Condition
@@ -38,6 +39,10 @@ class Filters:
             @Condition
             def tree_menu_toggled():
                 return self._is_tree_menu_toggled
+            
+            @Condition
+            def terminal_toggled():
+                return self._is_terminal_toggled
 
         self.vi_buffer_focused = _Conditions.vi_buffer_focused
         self.is_command_mode = _Conditions.vi_command_focused
@@ -45,9 +50,15 @@ class Filters:
 
         self.is_navigation_mode = vi_navigation_mode
         self.vi_insert_mode = vi_insert_mode  
+        
         self.tree_menu_toggled = _Conditions.tree_menu_toggled
+        self.terminal_toggled = _Conditions.terminal_toggled
         
     
     def tree_menu_toggle(self):
         self._is_tree_menu_toggled = not self._is_tree_menu_toggled
         return self._is_tree_menu_toggled
+    
+    def terminal_toggle(self):
+        self._is_terminal_toggled = not self._is_terminal_toggled
+        return self._is_terminal_toggled

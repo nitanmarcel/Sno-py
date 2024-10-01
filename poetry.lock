@@ -329,6 +329,25 @@ files = [
 wcwidth = "*"
 
 [[package]]
+name = "ptterm"
+version = "0.1"
+description = "Terminal emulator for prompt_toolkit."
+optional = false
+python-versions = "*"
+files = []
+develop = false
+
+[package.dependencies]
+prompt_toolkit = ">=3.0.0,<3.1.0"
+pyte = ">=0.5.1"
+
+[package.source]
+type = "git"
+url = "https://github.com/prompt-toolkit/ptterm"
+reference = "HEAD"
+resolved_reference = "ead3a206d950a8f9a201a99da886d5325dfd86aa"
+
+[[package]]
 name = "ptvertmenu"
 version = "0.2.2"
 description = "Vertical menu widget for prompt-toolkit with optional fzf-inspired search"
@@ -428,6 +447,20 @@ python-versions = "*"
 files = [
     {file = "pyperclip-1.9.0.tar.gz", hash = "sha256:b7de0142ddc81bfc5c7507eea19da920b92252b548b96186caf94a5e2527d310"},
 ]
+
+[[package]]
+name = "pyte"
+version = "0.5.1"
+description = "Simple VTXXX-compatible terminal emulator."
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyte-0.5.1-py2.py3-none-any.whl", hash = "sha256:41f51d243734016f4d2956b1e4a3f89fcd4081ce4deac536df44e3d891ead771"},
+    {file = "pyte-0.5.1.tar.gz", hash = "sha256:d2cf77ef6395c6b97d5c10ee47f38d348114170e504fc55a043d4c7dd1aea6e1"},
+]
+
+[package.dependencies]
+wcwidth = "*"
 
 [[package]]
 name = "sansio-lsp-client"
@@ -775,4 +808,4 @@ test = ["coverage (>=5.3.1)", "prompt-toolkit (>=3.0.29)", "pygments (>=2.2)", "
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "b761534780520ef9f22069324331bcfef03929405d29672e4bbf90460a63f5ce"
+content-hash = "572150304d2b99d89f88fef035cf09771748743347512887c43f155e95712450"

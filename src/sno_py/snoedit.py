@@ -1,4 +1,5 @@
 import os
+import shlex
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Optional
@@ -32,6 +33,8 @@ from sno_py.lsp.manager import LanguageClientManager
 from sno_py.singleton import singleton
 from sno_py.snocommand import SnoCommand
 from sno_py.strings import get_string
+
+from ptterm.utils import get_default_shell
 
 
 @singleton
@@ -81,6 +84,8 @@ class SnoEdit(object):
         self._tabstop = 4
         self._display_unprintable_characters = True
         self._use_system_clipboard = True
+        
+        self._terminal = None
 
         execer = xonsh.execer.Execer()
         xonsh.built_ins.XSH.load(execer=execer, inherit_env=True)
@@ -120,7 +125,7 @@ class SnoEdit(object):
             key_bindings=self.bindings,
             full_screen=True,
             editing_mode=EditingMode.VI,
-            mouse_support=True
+            mouse_support=True,
         )
 
         await self.active_buffer.focus()
@@ -231,6 +236,16 @@ class SnoEdit(object):
         return (
             PyperclipClipboard() if self._use_system_clipboard else InMemoryClipboard()
         )
+        
+    @property
+    def terminal(self):
+        if self._terminal is None:
+            return [get_default_shell()]
+        return shlex.split(self._terminal)
+    
+    @terminal.setter
+    def terminal(self, value) -> None:
+        self._terminal = value 
 
     def log(self, text: str) -> None:
         self.log_handler.write(text)
@@ -318,6 +333,7 @@ class SnoEdit(object):
         if buffer.saved or forced:
             if len(self.buffers) == 1:
                 await self.buffers[0].close()
+                self.layout.terminal.kill_terminal()
                 get_app().exit()
                 return True
             else:
@@ -344,11 +360,20 @@ class SnoEdit(object):
     
     def close_tree_menu(self):
         self.filters.tree_menu_toggle()
-        self.app.layout.focus_next()
+        self.app.layout.focus(self.active_buffer.buffer_inst)
+        
+    def show_terminal(self):
+        self.filters.terminal_toggle()
+        self.app.layout.focus(self.layout.terminal)
+        
+    def close_terminal(self):
+        self.filters.terminal_toggle()
+        self.app.layout.focus(self.active_buffer.buffer_inst)
             
     def refresh_layout(self) -> None:
         if self.app:
             self.app.layout = self.layout.layout
+            self.app.invalidate()
 
     def _load_snorc(self) -> None:
         if os.path.isfile(self.home_dir / ".snorc"):

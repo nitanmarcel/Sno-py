@@ -17,6 +17,7 @@ It's not so featured, it's missing a lot of things mainly because I don't use th
 
 ### Shortcuts
 - `c-d` toggle tree explorer
+- `c-x` toggle terminal
 
 ## Credits
 - [prompt-toolkit](https://github.com/prompt-toolkit)

@@ -24,6 +24,8 @@ from prompt_toolkit.layout.processors import (BeforeInput,
 from prompt_toolkit.layout.utils import explode_text_fragments
 from prompt_toolkit.lexers import DynamicLexer, PygmentsLexer
 from prompt_toolkit.widgets.toolbars import FormattedTextToolbar, SearchToolbar
+from prompt_toolkit.keys import Keys
+from ptterm import Terminal
 
 from sno_py.vi_modes import get_input_mode
 
@@ -114,6 +116,28 @@ class TreeDirectoryMenu(ConditionalContainer):
         return None
 
 
+class TerminalSplit(ConditionalContainer):
+    def __init__(self, editor):
+        self.editor = editor
+        self.terminal = Terminal(command=self.editor.terminal, height=Dimension(preferred=20), width=Dimension(), done_callback=self._on_done)
+        self.is_terminated = False
+        self._is_close_requested = False
+        super(TerminalSplit, self).__init__(
+            self.terminal,
+            filter=self.editor.filters.terminal_toggled
+        )
+    
+    def _on_done(self):
+        if not self._is_close_requested:
+            self.is_terminated = True
+            self.editor.close_terminal()
+            self.editor.refresh_layout()
+    
+    def kill_terminal(self):
+        self._is_close_requested = True
+        self.terminal.process.write_input("exit")
+        self.terminal.process.write_key(Keys.Enter)
+        
 class StatusBar(FormattedTextToolbar):
     def __init__(self, editor) -> None:
         super(StatusBar, self).__init__(
@@ -202,18 +226,33 @@ class LspReporterProcessor(Processor):
 class SnoLayout:
     def __init__(self, editor) -> None:
         self.editor = editor
-        self.search_toolbar = SearchToolbar(
-            vi_mode=True, search_buffer=editor.search_buffer
-        )
-        self.search_control = self.search_toolbar.control
-        self.status_bar = VSplit([StatusBar(self.editor), StatusBarRuller(self.editor)])
-        self.directory_tree = TreeDirectoryMenu(self.editor)
+        self.search_toolbar = None
+        
+        self.search_control = None 
+        self.status_bar = None 
+        self.directory_tree = None
+        self.terminal = None
 
     @property
     def layout(self):
+        if not self.search_toolbar:
+            
+            self.search_toolbar = SearchToolbar(
+                vi_mode=True, search_buffer=self.editor.search_buffer
+            )
+        if not self.search_control:
+            self.search_control = self.search_toolbar.control
+        if not self.status_bar:
+            self.status_bar = VSplit([StatusBar(self.editor), StatusBarRuller(self.editor)])
+        if not self.directory_tree:
+            self.directory_tree = TreeDirectoryMenu(self.editor) 
+        if not self.terminal or self.terminal.is_terminated:
+            self.terminal = TerminalSplit(self.editor)
+            
         fc = FloatContainer(
-            content=VSplit(
+            content=HSplit(
                 [
+                    VSplit([    
                     self.directory_tree,
                     Window(
                         BufferControl(
@@ -266,7 +305,9 @@ class SnoLayout:
                             )
                         ],
                     ),
-                ]
+                    ]),
+                    self.terminal,
+                ],
             ),
             floats=[
                 Float(
