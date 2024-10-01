@@ -34,6 +34,7 @@ from sno_py.snocommand import SnoCommand
 from sno_py.strings import get_string
 
 from ptterm.utils import get_default_shell
+from prompt_toolkit.output.color_depth import ColorDepth
 
 
 @singleton
@@ -86,6 +87,7 @@ class SnoEdit(object):
         self._use_nerd_fonts = False
 
         self._terminal = None
+        self._color_depth = None
 
         execer = xonsh.execer.Execer()
         xonsh.built_ins.XSH.load(execer=execer, inherit_env=True)
@@ -126,6 +128,7 @@ class SnoEdit(object):
             full_screen=True,
             editing_mode=EditingMode.VI,
             mouse_support=True,
+            color_depth=self._get_color_depth(),
         )
 
         await self.active_buffer.focus()
@@ -154,11 +157,11 @@ class SnoEdit(object):
                 "background": f"bg:{self.pygments_class.background_color}",
                 "container": f"bg:{adjust_color_brightness(self.pygments_class.background_color, 1.2)}",
                 "completion-menu": f"bg:{adjust_color_brightness(self.pygments_class.background_color, 1.2)} {self.pygments_class.styles[String]}",
-                "search": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
-                "selected": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
-                "completion-menu.completion.current": f"{self.pygments_class.highlight_color}",
+                "search": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color} underline",
+                "selected": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color} underline",
+                "completion-menu.completion.current": f"{self.pygments_class.highlight_color} underline",
                 "lsp-message-text": self.pygments_class.styles[Error],
-                "vertmenu.selected": f"bg:{self.pygments_class.highlight_color} {self.pygments_class.styles[String]}",
+                "vertmenu.selected": f"bg:{self.pygments_class.highlight_color} {self.pygments_class.styles[String]} underline",
             }
         )
 
@@ -255,6 +258,28 @@ class SnoEdit(object):
     @terminal.setter
     def terminal(self, value) -> None:
         self._terminal = value
+
+    @property
+    def color_depth(self):
+        return self._get_color_depth()
+
+    @color_depth.setter
+    def color_depth(self, value):
+        self._color_depth = value
+
+    def _get_color_depth(self):
+        if self._color_depth is None:
+            return None
+        if self._color_depth <= 0:
+            return ColorDepth.MONOCHROME
+        elif self._color_depth <= 1:
+            return ColorDepth.DEPTH_1_BIT
+        elif self._color_depth <= 4:
+            return ColorDepth.DEPTH_4_BIT
+        elif self._color_depth <= 8:
+            return ColorDepth.DEPTH_8_BIT
+        else:
+            return ColorDepth.DEPTH_24_BIT
 
     def log(self, text: str) -> None:
         self.log_handler.write(text)

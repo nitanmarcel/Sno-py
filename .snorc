@@ -1,6 +1,8 @@
 
 editor.colorscheme = $(echo monokai)
 
+editor.color_depth = 24 # <= 0 = Monochrome; <= 1 = 1 bit; <= 4 = 2 bit; <= 8 = 8 bit; <=> 24 = 24 bit  
+
 editor.show_line_numbers = True
 editor.show_relative_numbers = True
 editor.expandtabs = True
