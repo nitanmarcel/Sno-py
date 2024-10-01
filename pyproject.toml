@@ -1,6 +1,6 @@
 project = { dependencies = ["pyte~=0.8.2", "auto-walrus~=0.3.4"] }
 [tool.poetry]
-name = "snoo-py"
+name = "sno-py"
 version = "0.1.0"
 description = "Personal vim like file editor. Because Why Not?"
 authors = ["Marcel Alexandru Nitan <nitan.marcel@protonmail.com>"]
