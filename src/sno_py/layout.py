@@ -25,10 +25,26 @@ from prompt_toolkit.layout.utils import explode_text_fragments
 from prompt_toolkit.lexers import DynamicLexer, PygmentsLexer
 from prompt_toolkit.widgets.toolbars import FormattedTextToolbar, SearchToolbar
 from prompt_toolkit.keys import Keys
+from prompt_toolkit.mouse_events import MouseEventType
 from ptterm import Terminal
 
 from sno_py.vi_modes import get_input_mode
 
+class VSep(Window):
+    def __init__(self):
+        super(VSep, self).__init__(
+            width=1,
+            char="|",
+            style="class:line class:pygments.Token"
+        )
+
+class HSep(Window):
+    def __init__(self):
+        super(HSep, self).__init__(
+            height=1,
+            char="-",
+            style="class:line class:pygments.Token"
+        )
 
 class TreeItem:
     def __init__(self, name, path, is_dir, is_root=False):
@@ -50,7 +66,14 @@ class TreeDirectoryMenu(ConditionalContainer):
             items=self.menu_items, accept_handler=self.accept_handler
         )
 
-        super().__init__(self.menu, filter=editor.filters.tree_menu_toggled)
+        super().__init__(
+            VSplit(
+                [
+                    self.menu,
+                    VSep()
+                ]
+            ),
+            filter=editor.filters.tree_menu_toggled)
 
     def build_tree(self, path, is_root=False):
         root = TreeItem(os.path.basename(path), path, True, is_root)
@@ -123,7 +146,12 @@ class TerminalSplit(ConditionalContainer):
         self.is_terminated = False
         self._is_close_requested = False
         super(TerminalSplit, self).__init__(
-            self.terminal,
+            HSplit(
+                [
+                    HSep(),
+                    self.terminal
+                ]
+            ),
             filter=self.editor.filters.terminal_toggled
         )
     
@@ -161,7 +189,50 @@ class StatusBarRuller(Window):
             height=1,
         )
 
-
+class TabControl(FormattedTextControl):
+    def __init__(self, editor):
+        self.editor = editor
+        
+        super(TabControl, self).__init__(
+            self.get_tokens, 
+            style="class:container"
+        )
+        
+    
+    def tab_handler(self, index):
+        def handler(mouse_event):
+            if mouse_event.event_type == MouseEventType.MOUSE_DOWN:
+                self.editor.select_buffer(index)
+        return handler
+   
+    def get_tokens(self):
+        selected_index = self.editor.active_buffer.index
+        
+        result = []
+        
+        for i, buffer in enumerate(self.editor.buffers):
+            text = buffer.display_name
+            if not buffer.saved:
+                text = text + "*"
+            handler = self.tab_handler(i)
+            if i == selected_index:
+                result.append(('class:selection underline', ' %s ' % text, handler))
+            else:
+                result.append(('class:pygments.Generic.Strong ', ' %s ' % text, handler))
+            result.append(('class:container', ' '))
+        return result
+    
+class TabToolBar(ConditionalContainer):
+    def __init__(self, editor):
+        super(TabToolBar, self).__init__(
+            HSplit(
+                [
+                    Window(TabControl(editor), height=1),
+                    HSep()
+                ]
+            ), 
+            filter=Condition(lambda: len(editor.buffers) > 1))
+ 
 class CommandToolBar(ConditionalContainer):
     def __init__(self, editor) -> None:
         super(CommandToolBar, self).__init__(
@@ -252,6 +323,7 @@ class SnoLayout:
         fc = FloatContainer(
             content=HSplit(
                 [
+                    TabToolBar(self.editor),
                     VSplit([    
                     self.directory_tree,
                     Window(

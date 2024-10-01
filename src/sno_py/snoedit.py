@@ -277,7 +277,7 @@ class SnoEdit(object):
             self.buffers.append(buffer)
         else:
             index = self.active_buffer.index
-            self.buffers.insert(index, buffer)
+            self.buffers.insert(index + 1, buffer)
         self.active_buffer = buffer
         self.refresh_layout()
         if buffer.read_only:
