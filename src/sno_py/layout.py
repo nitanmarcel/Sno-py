@@ -309,17 +309,23 @@ class LspReporterProcessor(Processor):
 
 
 class SnoLayout:
-    def __init__(self, editor) -> None:
+    def __init__(self, editor):
         self.editor = editor
         self.search_toolbar = None
-
         self.search_control = None
         self.status_bar = None
         self.directory_tree = None
         self.terminal = None
+        self.custom_hsplits = []
+        self.custom_vsplits = []
 
-    @property
-    def layout(self):
+    def add_hsplit(self, content):
+        self.custom_hsplits.append(content)
+
+    def add_vsplit(self, content):
+        self.custom_vsplits.append(content)
+
+    def _initialize_components(self):
         if not self.search_toolbar:
             self.search_toolbar = SearchToolbar(
                 vi_mode=True, search_buffer=self.editor.search_buffer
@@ -335,79 +341,71 @@ class SnoLayout:
         if not self.terminal or self.terminal.is_terminated:
             self.terminal = TerminalSplit(self.editor)
 
-        fc = FloatContainer(
-            content=HSplit(
-                [
-                    TabToolBar(self.editor),
-                    VSplit(
-                        [
-                            self.directory_tree,
-                            Window(
-                                BufferControl(
-                                    buffer=self.editor.active_buffer.buffer_inst,
-                                    search_buffer_control=self.search_control,
-                                    focus_on_click=True,
-                                    preview_search=True,
-                                    lexer=PygmentsLexer.from_filename(
-                                        self.editor.active_buffer.display_name,
-                                        sync_from_start=False,
-                                    ),
-                                    include_default_input_processors=False,
-                                    input_processors=[
-                                        LspReporterProcessor(self.editor),
-                                        ShowTrailingWhiteSpaceProcessor(),
-                                        HighlightSelectionProcessor(),
-                                        HighlightSearchProcessor(),
-                                        TabsProcessor(
-                                            tabstop=self.editor.tabstop,
-                                            char1=(
-                                                lambda: (
-                                                    "|"
-                                                    if self.editor.display_unprintable_characters
-                                                    else " "
-                                                )
-                                            ),
-                                            char2=(
-                                                lambda: (
-                                                    _try_char(
-                                                        "\u2508",
-                                                        ".",
-                                                        get_app().output.encoding(),
-                                                    )
-                                                    if self.editor.display_unprintable_characters
-                                                    else " "
-                                                )
-                                            ),
-                                        ),
-                                    ],
-                                ),
-                                left_margins=[
-                                    ConditionalMargin(
-                                        margin=NumberedMargin(
-                                            display_tildes=True,
-                                            relative=Condition(
-                                                lambda: self.editor.show_relative_numbers
-                                            ),
-                                        ),
-                                        filter=Condition(
-                                            lambda: self.editor.show_line_numbers
-                                        ),
-                                    )
-                                ],
-                            ),
-                        ]
-                    ),
-                    self.terminal,
-                ],
+    def _create_buffer_control(self):
+        return BufferControl(
+            buffer=self.editor.active_buffer.buffer_inst,
+            search_buffer_control=self.search_control,
+            focus_on_click=True,
+            preview_search=True,
+            lexer=PygmentsLexer.from_filename(
+                self.editor.active_buffer.display_name,
+                sync_from_start=False,
             ),
+            include_default_input_processors=False,
+            input_processors=[
+                LspReporterProcessor(self.editor),
+                ShowTrailingWhiteSpaceProcessor(),
+                HighlightSelectionProcessor(),
+                HighlightSearchProcessor(),
+                TabsProcessor(
+                    tabstop=self.editor.tabstop,
+                    char1=lambda: "|"
+                    if self.editor.display_unprintable_characters
+                    else " ",
+                    char2=lambda: _try_char("\u2508", ".", get_app().output.encoding())
+                    if self.editor.display_unprintable_characters
+                    else " ",
+                ),
+            ],
+        )
+
+    def _create_main_window(self):
+        return Window(
+            self._create_buffer_control(),
+            left_margins=[
+                ConditionalMargin(
+                    margin=NumberedMargin(
+                        display_tildes=True,
+                        relative=Condition(lambda: self.editor.show_relative_numbers),
+                    ),
+                    filter=Condition(lambda: self.editor.show_line_numbers),
+                )
+            ],
+        )
+
+    @property
+    def layout(self):
+        self._initialize_components()
+
+        main_vsplit = VSplit([self.directory_tree, self._create_main_window()])
+        main_vsplit.children = main_vsplit.children + self.custom_vsplits
+
+        main_hsplit = HSplit(
+            [
+                TabToolBar(self.editor),
+                main_vsplit,
+                self.terminal,
+            ]
+        )
+        main_hsplit.children = main_hsplit.children + self.custom_hsplits
+
+        fc = FloatContainer(
+            content=main_hsplit,
             floats=[
                 Float(
                     xcursor=True,
                     ycursor=True,
-                    content=CompletionsMenu(
-                        max_height=12,
-                        scroll_offset=2,
-                    ),
+                    content=CompletionsMenu(max_height=12, scroll_offset=2),
                 )
             ],
         )

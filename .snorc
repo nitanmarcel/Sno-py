@@ -17,3 +17,12 @@ editor.terminal = "/bin/bash"
 # Configure lsp
 
 editor.lsp.add_server(language_id="python", extensions=[".py"], command="pylsp", args=[])
+
+
+# Custom layout
+
+#>>> from prompt_toolkit.layout import HSplit, VSplit
+## Add custom horizontal split 
+#>>> editor.layout.add_hsplit(HSplit(...]))
+## Add custom vertical split
+#>>> editor.layout.add_vsplit(VSplit(...]))
