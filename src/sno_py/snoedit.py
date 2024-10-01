@@ -9,7 +9,6 @@ import xonsh.execer
 import xonsh.imphooks
 from appdirs import user_cache_dir, user_config_dir, user_data_dir
 from prompt_toolkit.eventloop import run_in_executor_with_context
-from prompt_toolkit.application.run_in_terminal import in_terminal
 from prompt_toolkit.application import Application, get_app
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.clipboard.in_memory import InMemoryClipboard
@@ -395,5 +394,4 @@ class SnoEdit(object):
         xonsh.built_ins.XSH.builtins.execx(code, glbs={"editor": self})
 
     async def aexecx(self, code) -> None:
-        async with in_terminal():
-            await run_in_executor_with_context(self.execx, code)
+        await run_in_executor_with_context(self.execx, code)

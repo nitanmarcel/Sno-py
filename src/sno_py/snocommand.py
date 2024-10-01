@@ -65,9 +65,13 @@ def buffer_completion_handler(editor, args: list):
     return WordCompleter([b.display_name_with_index for b in editor.buffers])
 
 
-@redirect.log_stderr
-@redirect.log_stdout
+@redirect.terminal(wait_for_enter=True)
 async def execx(editor, *args, **kwargs) -> None:
+    await editor.aexecx(kwargs["_raw"])
+
+
+@redirect.terminal(wait_for_enter=False)
+async def execx_no_wait(editor, *args, **kwargs) -> None:
     await editor.aexecx(kwargs["_raw"])
 
 
@@ -94,7 +98,7 @@ class SnoCommand:
             if len(split) > 1:
                 cmd, rest = split
                 args, kwargs = self._parse_args_kwargs(rest)
-            if cmd.endswith("!") and len(cmd) > 1:
+            if cmd.endswith("!") and cmd not in ["!", "!!"]:
                 kwargs["force"] = True
                 cmd = cmd[:-1]
             if cmd in self._handlers:
@@ -130,6 +134,7 @@ class SnoCommand:
             buffer, "buffer", completion_handler=buffer_completion_handler
         )
         self.add_command_handler(execx, "!")
+        self.add_command_handler(execx_no_wait, "!!")
 
     def add_command_handler(self, func, name: str, completion_handler=None) -> None:
         if isinstance(name, list):

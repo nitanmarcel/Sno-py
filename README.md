@@ -8,7 +8,8 @@ It's not so featured, it's missing a lot of things mainly because I don't use th
 - `:w`, `:q`, `:wq`, `:qa`, `:wa`, `:wqa` complete with ! as the force argument
 - `:o` to open files with path autocomplete
 - `:buffer` to change the active buffer (file). with autocomplete
-- `:!` to execute commands using xonsh
+- `:!` to execute commands using xonsh. While pausing the aplication
+= `:!!` to execute commands using xonsh without pausing the application
 = **no** `:set` command. It's replaced by python calls `:! editor.colorscheme = "monokay"`. See ./.snorc
 - rc file, powered by [xonsh](https://github.com/xonsh/xonsh) supports both python and bash because why not
 - colorscheme powered by pygments. There's no color scheme so everything is edited using the .snorc file
