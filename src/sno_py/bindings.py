@@ -5,7 +5,6 @@ from prompt_toolkit.key_binding import KeyBindings
 
 from sno_py.filters import Filters
 
-
 class SnoBinds(KeyBindings):
     def __init__(self, editor) -> None:
         self.editor = editor

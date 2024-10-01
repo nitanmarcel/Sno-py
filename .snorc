@@ -7,6 +7,12 @@ editor.expandtabs = True
 editor.tabstop = 4
 editor.display_unprintable_characters = True
 
+# Enable nerd fonts
+editor.use_nerd_fonts = True
+
+# Change default terminal
+# If set to something else other than bash, setting the cursor to be on the next line is recommended (e.g for xnosh)
+editor.terminal = "/bin/bash"
 
 # Configure lsp
 

@@ -3,6 +3,7 @@ import re
 from typing import Literal, Union
 
 from sno_py.filetypes.defaults import filetype_defaults
+from sno_py.fonts_utils import get_language_icon
 
 
 class FileType:
@@ -36,6 +37,10 @@ class FileType:
 
         result = sorted_scores[0][0]
         return result
+    
+    def guess_filetype_icon(self, file_path, content=" ") -> str:
+        filetype = self.guess_filetype(file_path, content)
+        return get_language_icon(filetype)
 
     @classmethod
     def add_filetype(cls, filetype, filename_pattern, content_pattern=None):

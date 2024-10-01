@@ -7,6 +7,8 @@ from prompt_toolkit.completion import CompleteEvent, Completer, Completion
 from prompt_toolkit.document import Document
 from sansio_lsp_client import CompletionItemKind, MarkupContent
 
+from sno_py.fonts_utils import get_icon
+
 completion_symbols_plain = {
     CompletionItemKind.TEXT: "\u005F",
     CompletionItemKind.METHOD: "\u21D2",
@@ -35,6 +37,41 @@ completion_symbols_plain = {
     CompletionItemKind.TYPEPARAMETER: "\u03B1",
     "signature": "(\u2026)",
 }
+
+completion_symbols_nerd = {
+    CompletionItemKind.TEXT: "cod-symbol_string",
+    CompletionItemKind.METHOD: "cod-symbol_method",
+    CompletionItemKind.FUNCTION: "cod-symbol_method",
+    CompletionItemKind.CONSTRUCTOR: "cod-symbol_method",
+    CompletionItemKind.FIELD: "cod-symbol_field",
+    CompletionItemKind.VARIABLE: "cod-symbol_variable",
+    CompletionItemKind.CLASS: "cod-symbol_class",
+    CompletionItemKind.INTERFACE: "cod-symbol_interface",
+    CompletionItemKind.MODULE: "cod-symbol_namespace",
+    CompletionItemKind.PROPERTY: "cod-symbol_property",
+    CompletionItemKind.UNIT: "cod-symbol_misc",
+    CompletionItemKind.VALUE: "cod-symbol_misc",
+    CompletionItemKind.ENUM: "cod-symbol_enum",
+    CompletionItemKind.KEYWORD: "cod-symbol_keyword",
+    CompletionItemKind.SNIPPET: "cod-symbol_snippet",
+    CompletionItemKind.COLOR: "cod-symbol_color",
+    CompletionItemKind.FILE: "cod-symbol_file",
+    CompletionItemKind.REFERENCE: "cod-symbol_misc",
+    CompletionItemKind.FOLDER: "cod-symbol_misc",
+    CompletionItemKind.ENUMMEMBER: "cod-symbol_enum_member",
+    CompletionItemKind.CONSTANT: "cod-symbol_constant",
+    CompletionItemKind.STRUCT: "cod-symbol_structure",
+    CompletionItemKind.EVENT: "cod-symbol_event",
+    CompletionItemKind.OPERATOR: "cod-symbol_operator",
+    CompletionItemKind.TYPEPARAMETER: "cod-symbol_misc",
+    "signature": "cod-symbol_misc",
+}
+
+
+def get_symbol(kind, use_nerd):
+    if use_nerd:
+        return get_icon(completion_symbols_nerd[kind])
+    return completion_symbols_plain[kind]
 
 
 class LanguageCompleter(Completer):
@@ -65,7 +102,7 @@ class LanguageCompleter(Completer):
                 yield Completion(
                     text=" ",
                     start_position=0,
-                    display=completion_symbols_plain["signature"] + " " + signature,
+                    display=get_symbol("signature", self._editor.use_nerd_fonts) + " " + signature,
                 )
             else:
                 async for completion in client.request_completion(
@@ -76,7 +113,7 @@ class LanguageCompleter(Completer):
                     yield Completion(
                         text=completion.insertText or completion.label,
                         start_position=-len(document.get_word_before_cursor()),
-                        display=completion_symbols_plain[completion.kind]
+                        display=get_symbol(completion.kind, self._editor.use_nerd_fonts)
                         + " "
                         + completion.label,
                         display_meta=(

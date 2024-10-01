@@ -29,6 +29,7 @@ from prompt_toolkit.mouse_events import MouseEventType
 from ptterm import Terminal
 
 from sno_py.vi_modes import get_input_mode
+from sno_py.fonts_utils import get_icon, get_language_icon
 
 class VSep(Window):
     def __init__(self):
@@ -97,14 +98,22 @@ class TreeDirectoryMenu(ConditionalContainer):
                 for child in node.children:
                     items.extend(self.get_menu_items(child, level))
             else:
-                icon = "▼" if node.expanded else "▶"
+                if self.editor.use_nerd_fonts:
+                    icon = get_icon("oct-fold_down") if node.expanded else get_icon("oct-fold")
+                else:
+                    icon = "▼" if node.expanded else "▶"
                 items.append((f"{prefix}{icon} {node.name}", node.path))
                 if node.expanded:
                     for child in node.children:
                         items.extend(self.get_menu_items(child, level + 1))
         else:
-            items.append((f"{prefix}{node.name}", node.path))
+            if self.editor.use_nerd_fonts:
+                icon = self.editor.filetype.guess_filetype_icon(node.path)
+                items.append((f"{prefix}{icon} {node.name}", node.path))
+            else:
+                items.append((f"{prefix}{node.name}", node.path))
         return items
+
 
     def accept_handler(self, item):
         path = item[1]
@@ -211,7 +220,10 @@ class TabControl(FormattedTextControl):
         result = []
         
         for i, buffer in enumerate(self.editor.buffers):
-            text = buffer.display_name
+            text = ""
+            if self.editor.use_nerd_fonts:
+                text = self.editor.filetype.guess_filetype_icon(buffer.path) + " "
+            text += buffer.display_name
             if not buffer.saved:
                 text = text + "*"
             handler = self.tab_handler(i)

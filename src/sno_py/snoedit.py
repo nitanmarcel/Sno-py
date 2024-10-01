@@ -85,6 +85,7 @@ class SnoEdit(object):
         self._tabstop = 4
         self._display_unprintable_characters = True
         self._use_system_clipboard = True
+        self._use_nerd_fonts = False
         
         self._terminal = None
 
@@ -231,6 +232,15 @@ class SnoEdit(object):
         self._use_system_clipboard = bool(value)
         if self.app:
             self.app.clipboard = self.clipboard
+            
+    @property
+    def use_nerd_fonts(self) -> bool:
+        return self._use_nerd_fonts
+    
+    @use_nerd_fonts.setter
+    def use_nerd_fonts(self, value):
+        self._use_nerd_fonts = bool(value)
+        self.refresh_layout()
 
     @property
     def clipboard(self):
