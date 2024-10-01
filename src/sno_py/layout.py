@@ -1,51 +1,57 @@
 import asyncio
 import os
 import sys
-from typing import Callable, Iterable, Optional
-
-import anyio
 import ptvertmenu
 from prompt_toolkit.application import get_app
 from prompt_toolkit.filters import Condition, has_focus, is_searching
-from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.layout import (ConditionalContainer, Float, FloatContainer,
-                                   HSplit, Layout, VSplit, Window, WindowAlign)
+from prompt_toolkit.layout import (
+    ConditionalContainer,
+    Float,
+    FloatContainer,
+    HSplit,
+    Layout,
+    VSplit,
+    Window,
+    WindowAlign,
+)
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.margins import ConditionalMargin, NumberedMargin
 from prompt_toolkit.layout.menus import CompletionsMenu
-from prompt_toolkit.layout.processors import (BeforeInput,
-                                              HighlightSearchProcessor,
-                                              HighlightSelectionProcessor,
-                                              Processor,
-                                              ShowTrailingWhiteSpaceProcessor,
-                                              TabsProcessor, Transformation,
-                                              TransformationInput)
+from prompt_toolkit.layout.processors import (
+    BeforeInput,
+    HighlightSearchProcessor,
+    HighlightSelectionProcessor,
+    Processor,
+    ShowTrailingWhiteSpaceProcessor,
+    TabsProcessor,
+    Transformation,
+    TransformationInput,
+)
 from prompt_toolkit.layout.utils import explode_text_fragments
-from prompt_toolkit.lexers import DynamicLexer, PygmentsLexer
+from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.widgets.toolbars import FormattedTextToolbar, SearchToolbar
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.mouse_events import MouseEventType
 from ptterm import Terminal
 
 from sno_py.vi_modes import get_input_mode
-from sno_py.fonts_utils import get_icon, get_language_icon
+from sno_py.fonts_utils import get_icon
+
 
 class VSep(Window):
     def __init__(self):
         super(VSep, self).__init__(
-            width=1,
-            char="|",
-            style="class:line class:pygments.Token"
+            width=1, char="|", style="class:line class:pygments.Token"
         )
+
 
 class HSep(Window):
     def __init__(self):
         super(HSep, self).__init__(
-            height=1,
-            char="-",
-            style="class:line class:pygments.Token"
+            height=1, char="-", style="class:line class:pygments.Token"
         )
+
 
 class TreeItem:
     def __init__(self, name, path, is_dir, is_root=False):
@@ -68,13 +74,8 @@ class TreeDirectoryMenu(ConditionalContainer):
         )
 
         super().__init__(
-            VSplit(
-                [
-                    self.menu,
-                    VSep()
-                ]
-            ),
-            filter=editor.filters.tree_menu_toggled)
+            VSplit([self.menu, VSep()]), filter=editor.filters.tree_menu_toggled
+        )
 
     def build_tree(self, path, is_root=False):
         root = TreeItem(os.path.basename(path), path, True, is_root)
@@ -99,7 +100,11 @@ class TreeDirectoryMenu(ConditionalContainer):
                     items.extend(self.get_menu_items(child, level))
             else:
                 if self.editor.use_nerd_fonts:
-                    icon = get_icon("oct-fold_down") if node.expanded else get_icon("oct-fold")
+                    icon = (
+                        get_icon("oct-fold_down")
+                        if node.expanded
+                        else get_icon("oct-fold")
+                    )
                 else:
                     icon = "▼" if node.expanded else "▶"
                 items.append((f"{prefix}{icon} {node.name}", node.path))
@@ -113,7 +118,6 @@ class TreeDirectoryMenu(ConditionalContainer):
             else:
                 items.append((f"{prefix}{node.name}", node.path))
         return items
-
 
     def accept_handler(self, item):
         path = item[1]
@@ -151,30 +155,30 @@ class TreeDirectoryMenu(ConditionalContainer):
 class TerminalSplit(ConditionalContainer):
     def __init__(self, editor):
         self.editor = editor
-        self.terminal = Terminal(command=self.editor.terminal, height=Dimension(preferred=20), width=Dimension(), done_callback=self._on_done)
+        self.terminal = Terminal(
+            command=self.editor.terminal,
+            height=Dimension(preferred=20),
+            width=Dimension(),
+            done_callback=self._on_done,
+        )
         self.is_terminated = False
         self._is_close_requested = False
         super(TerminalSplit, self).__init__(
-            HSplit(
-                [
-                    HSep(),
-                    self.terminal
-                ]
-            ),
-            filter=self.editor.filters.terminal_toggled
+            HSplit([HSep(), self.terminal]), filter=self.editor.filters.terminal_toggled
         )
-    
+
     def _on_done(self):
         if not self._is_close_requested:
             self.is_terminated = True
             self.editor.close_terminal()
             self.editor.refresh_layout()
-    
+
     def kill_terminal(self):
         self._is_close_requested = True
         self.terminal.process.write_input("exit")
         self.terminal.process.write_key(Keys.Enter)
-        
+
+
 class StatusBar(FormattedTextToolbar):
     def __init__(self, editor) -> None:
         super(StatusBar, self).__init__(
@@ -198,27 +202,25 @@ class StatusBarRuller(Window):
             height=1,
         )
 
+
 class TabControl(FormattedTextControl):
     def __init__(self, editor):
         self.editor = editor
-        
-        super(TabControl, self).__init__(
-            self.get_tokens, 
-            style="class:container"
-        )
-        
-    
+
+        super(TabControl, self).__init__(self.get_tokens, style="class:container")
+
     def tab_handler(self, index):
         def handler(mouse_event):
             if mouse_event.event_type == MouseEventType.MOUSE_DOWN:
                 self.editor.select_buffer(index)
+
         return handler
-   
+
     def get_tokens(self):
         selected_index = self.editor.active_buffer.index
-        
+
         result = []
-        
+
         for i, buffer in enumerate(self.editor.buffers):
             text = ""
             if self.editor.use_nerd_fonts:
@@ -228,23 +230,23 @@ class TabControl(FormattedTextControl):
                 text = text + "*"
             handler = self.tab_handler(i)
             if i == selected_index:
-                result.append(('class:selection underline', ' %s ' % text, handler))
+                result.append(("class:selection underline", " %s " % text, handler))
             else:
-                result.append(('class:pygments.Generic.Strong ', ' %s ' % text, handler))
-            result.append(('class:container', ' '))
+                result.append(
+                    ("class:pygments.Generic.Strong ", " %s " % text, handler)
+                )
+            result.append(("class:container", " "))
         return result
-    
+
+
 class TabToolBar(ConditionalContainer):
     def __init__(self, editor):
         super(TabToolBar, self).__init__(
-            HSplit(
-                [
-                    Window(TabControl(editor), height=1),
-                    HSep()
-                ]
-            ), 
-            filter=Condition(lambda: len(editor.buffers) > 1))
- 
+            HSplit([Window(TabControl(editor), height=1), HSep()]),
+            filter=Condition(lambda: len(editor.buffers) > 1),
+        )
+
+
 class CommandToolBar(ConditionalContainer):
     def __init__(self, editor) -> None:
         super(CommandToolBar, self).__init__(
@@ -310,86 +312,91 @@ class SnoLayout:
     def __init__(self, editor) -> None:
         self.editor = editor
         self.search_toolbar = None
-        
-        self.search_control = None 
-        self.status_bar = None 
+
+        self.search_control = None
+        self.status_bar = None
         self.directory_tree = None
         self.terminal = None
 
     @property
     def layout(self):
         if not self.search_toolbar:
-            
             self.search_toolbar = SearchToolbar(
                 vi_mode=True, search_buffer=self.editor.search_buffer
             )
         if not self.search_control:
             self.search_control = self.search_toolbar.control
         if not self.status_bar:
-            self.status_bar = VSplit([StatusBar(self.editor), StatusBarRuller(self.editor)])
+            self.status_bar = VSplit(
+                [StatusBar(self.editor), StatusBarRuller(self.editor)]
+            )
         if not self.directory_tree:
-            self.directory_tree = TreeDirectoryMenu(self.editor) 
+            self.directory_tree = TreeDirectoryMenu(self.editor)
         if not self.terminal or self.terminal.is_terminated:
             self.terminal = TerminalSplit(self.editor)
-            
+
         fc = FloatContainer(
             content=HSplit(
                 [
                     TabToolBar(self.editor),
-                    VSplit([    
-                    self.directory_tree,
-                    Window(
-                        BufferControl(
-                            buffer=self.editor.active_buffer.buffer_inst,
-                            search_buffer_control=self.search_control,
-                            focus_on_click=True,
-                            preview_search=True,
-                            lexer=PygmentsLexer.from_filename(
-                                self.editor.active_buffer.display_name,
-                                sync_from_start=False,
+                    VSplit(
+                        [
+                            self.directory_tree,
+                            Window(
+                                BufferControl(
+                                    buffer=self.editor.active_buffer.buffer_inst,
+                                    search_buffer_control=self.search_control,
+                                    focus_on_click=True,
+                                    preview_search=True,
+                                    lexer=PygmentsLexer.from_filename(
+                                        self.editor.active_buffer.display_name,
+                                        sync_from_start=False,
+                                    ),
+                                    include_default_input_processors=False,
+                                    input_processors=[
+                                        LspReporterProcessor(self.editor),
+                                        ShowTrailingWhiteSpaceProcessor(),
+                                        HighlightSelectionProcessor(),
+                                        HighlightSearchProcessor(),
+                                        TabsProcessor(
+                                            tabstop=self.editor.tabstop,
+                                            char1=(
+                                                lambda: (
+                                                    "|"
+                                                    if self.editor.display_unprintable_characters
+                                                    else " "
+                                                )
+                                            ),
+                                            char2=(
+                                                lambda: (
+                                                    _try_char(
+                                                        "\u2508",
+                                                        ".",
+                                                        get_app().output.encoding(),
+                                                    )
+                                                    if self.editor.display_unprintable_characters
+                                                    else " "
+                                                )
+                                            ),
+                                        ),
+                                    ],
+                                ),
+                                left_margins=[
+                                    ConditionalMargin(
+                                        margin=NumberedMargin(
+                                            display_tildes=True,
+                                            relative=Condition(
+                                                lambda: self.editor.show_relative_numbers
+                                            ),
+                                        ),
+                                        filter=Condition(
+                                            lambda: self.editor.show_line_numbers
+                                        ),
+                                    )
+                                ],
                             ),
-                            include_default_input_processors=False,
-                            input_processors=[
-                                LspReporterProcessor(self.editor),
-                                ShowTrailingWhiteSpaceProcessor(),
-                                HighlightSelectionProcessor(),
-                                HighlightSearchProcessor(),
-                                TabsProcessor(
-                                    tabstop=self.editor.tabstop,
-                                    char1=(
-                                        lambda: (
-                                            "|"
-                                            if self.editor.display_unprintable_characters
-                                            else " "
-                                        )
-                                    ),
-                                    char2=(
-                                        lambda: (
-                                            _try_char(
-                                                "\u2508",
-                                                ".",
-                                                get_app().output.encoding(),
-                                            )
-                                            if self.editor.display_unprintable_characters
-                                            else " "
-                                        )
-                                    ),
-                                ),
-                            ],
-                        ),
-                        left_margins=[
-                            ConditionalMargin(
-                                margin=NumberedMargin(
-                                    display_tildes=True,
-                                    relative=Condition(
-                                        lambda: self.editor.show_relative_numbers
-                                    ),
-                                ),
-                                filter=Condition(lambda: self.editor.show_line_numbers),
-                            )
-                        ],
+                        ]
                     ),
-                    ]),
                     self.terminal,
                 ],
             ),

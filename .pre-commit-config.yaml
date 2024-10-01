@@ -1,0 +1,18 @@
+repos:
+    - repo: https://github.com/hakancelikdev/unimport
+      rev: 1.2.1
+      hooks:
+        - id: unimport
+          args:
+            - --include-star-import
+            - --ignore-init
+            - --gitignore
+    - repo: https://github.com/astral-sh/ruff-pre-commit
+      # Ruff version.
+      rev: v0.6.8
+      hooks:
+        - id: ruff-format
+    - repo: https://github.com/MarcoGorelli/auto-walrus
+      rev: 0.3.4
+      hooks:
+        - id: auto-walrus

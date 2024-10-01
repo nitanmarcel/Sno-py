@@ -1,4 +1,3 @@
-import asyncio
 from typing import AsyncGenerator, Iterable
 
 from markdown import markdown
@@ -10,31 +9,31 @@ from sansio_lsp_client import CompletionItemKind, MarkupContent
 from sno_py.fonts_utils import get_icon
 
 completion_symbols_plain = {
-    CompletionItemKind.TEXT: "\u005F",
-    CompletionItemKind.METHOD: "\u21D2",
+    CompletionItemKind.TEXT: "\u005f",
+    CompletionItemKind.METHOD: "\u21d2",
     CompletionItemKind.FUNCTION: "\u0192",
-    CompletionItemKind.CONSTRUCTOR: "\u22C6",
-    CompletionItemKind.FIELD: "\u00B7",
+    CompletionItemKind.CONSTRUCTOR: "\u22c6",
+    CompletionItemKind.FIELD: "\u00b7",
     CompletionItemKind.VARIABLE: "\u0078",
-    CompletionItemKind.CLASS: "\u29C9",
-    CompletionItemKind.INTERFACE: "\u21D4",
-    CompletionItemKind.MODULE: "\u25A9",
+    CompletionItemKind.CLASS: "\u29c9",
+    CompletionItemKind.INTERFACE: "\u21d4",
+    CompletionItemKind.MODULE: "\u25a9",
     CompletionItemKind.PROPERTY: "\u2318",
-    CompletionItemKind.UNIT: "\u03C5",
+    CompletionItemKind.UNIT: "\u03c5",
     CompletionItemKind.VALUE: "\u2208",
     CompletionItemKind.ENUM: "\u2460",
-    CompletionItemKind.KEYWORD: "\u27B2",
+    CompletionItemKind.KEYWORD: "\u27b2",
     CompletionItemKind.SNIPPET: "\u2192",
-    CompletionItemKind.COLOR: "\u25A0",
-    CompletionItemKind.FILE: "\u25A1",
+    CompletionItemKind.COLOR: "\u25a0",
+    CompletionItemKind.FILE: "\u25a1",
     CompletionItemKind.REFERENCE: "\u2605",
-    CompletionItemKind.FOLDER: "\u25B1",
-    CompletionItemKind.ENUMMEMBER: "\u26AC",
-    CompletionItemKind.CONSTANT: "\u03C0",
-    CompletionItemKind.STRUCT: "\u25A4",
+    CompletionItemKind.FOLDER: "\u25b1",
+    CompletionItemKind.ENUMMEMBER: "\u26ac",
+    CompletionItemKind.CONSTANT: "\u03c0",
+    CompletionItemKind.STRUCT: "\u25a4",
     CompletionItemKind.EVENT: "\u2690",
-    CompletionItemKind.OPERATOR: "\u220F",
-    CompletionItemKind.TYPEPARAMETER: "\u03B1",
+    CompletionItemKind.OPERATOR: "\u220f",
+    CompletionItemKind.TYPEPARAMETER: "\u03b1",
     "signature": "(\u2026)",
 }
 
@@ -102,7 +101,9 @@ class LanguageCompleter(Completer):
                 yield Completion(
                     text=" ",
                     start_position=0,
-                    display=get_symbol("signature", self._editor.use_nerd_fonts) + " " + signature,
+                    display=get_symbol("signature", self._editor.use_nerd_fonts)
+                    + " "
+                    + signature,
                 )
             else:
                 async for completion in client.request_completion(

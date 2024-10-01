@@ -3,10 +3,8 @@ import re
 import shlex
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
-from typing import Optional
 
 import xonsh.built_ins
-import xonsh.environ
 import xonsh.execer
 import xonsh.imphooks
 from appdirs import user_cache_dir, user_config_dir, user_data_dir
@@ -86,7 +84,7 @@ class SnoEdit(object):
         self._display_unprintable_characters = True
         self._use_system_clipboard = True
         self._use_nerd_fonts = False
-        
+
         self._terminal = None
 
         execer = xonsh.execer.Execer()
@@ -160,7 +158,7 @@ class SnoEdit(object):
                 "selected": f"bg:{self.pygments_class.styles[String]} {self.pygments_class.highlight_color}",
                 "completion-menu.completion.current": f"{self.pygments_class.highlight_color}",
                 "lsp-message-text": self.pygments_class.styles[Error],
-                "vertmenu.selected": f"bg:{self.pygments_class.highlight_color} {self.pygments_class.styles[String]}"
+                "vertmenu.selected": f"bg:{self.pygments_class.highlight_color} {self.pygments_class.styles[String]}",
             }
         )
 
@@ -232,11 +230,11 @@ class SnoEdit(object):
         self._use_system_clipboard = bool(value)
         if self.app:
             self.app.clipboard = self.clipboard
-            
+
     @property
     def use_nerd_fonts(self) -> bool:
         return self._use_nerd_fonts
-    
+
     @use_nerd_fonts.setter
     def use_nerd_fonts(self, value):
         self._use_nerd_fonts = bool(value)
@@ -247,16 +245,16 @@ class SnoEdit(object):
         return (
             PyperclipClipboard() if self._use_system_clipboard else InMemoryClipboard()
         )
-        
+
     @property
     def terminal(self):
         if self._terminal is None:
             return [get_default_shell()]
         return shlex.split(self._terminal)
-    
+
     @terminal.setter
     def terminal(self, value) -> None:
-        self._terminal = value 
+        self._terminal = value
 
     def log(self, text: str) -> None:
         self.log_handler.write(text)
@@ -308,14 +306,14 @@ class SnoEdit(object):
         except Exception as e:
             if isinstance(e, IsADirectoryError):
                 self.log(str(e))
-    
+
     def select_buffer(self, index):
         if isinstance(index, str):
             pattern = re.compile(r"\[(\d+)\]")
             match = pattern.search(index)
             if match:
                 index = int(match.group(1))
-                
+
         self.active_buffer = self.buffers[index]
         self.refresh_layout()
 
@@ -356,23 +354,23 @@ class SnoEdit(object):
         for b in reversed(self.buffers):
             if not await self.close_current_buffer(buffer=b, forced=forced):
                 break
-            
+
     def show_tree_menu(self):
         self.filters.tree_menu_toggle()
         self.app.layout.focus(self.layout.directory_tree)
-    
+
     def close_tree_menu(self):
         self.filters.tree_menu_toggle()
         self.app.layout.focus(self.active_buffer.buffer_inst)
-        
+
     def show_terminal(self):
         self.filters.terminal_toggle()
         self.app.layout.focus(self.layout.terminal)
-        
+
     def close_terminal(self):
         self.filters.terminal_toggle()
         self.app.layout.focus(self.active_buffer.buffer_inst)
-            
+
     def refresh_layout(self) -> None:
         if self.app:
             for buffer in self.buffers:

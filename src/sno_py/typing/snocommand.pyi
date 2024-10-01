@@ -2,8 +2,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.completion.word_completer import WordCompleter
-from prompt_toolkit.contrib.regular_languages.completion import \
-    GrammarCompleter
+from prompt_toolkit.contrib.regular_languages.completion import GrammarCompleter
 
 from sno_py.snoedit import SnoEdit
 

@@ -3,8 +3,7 @@ import inspect
 
 from prompt_toolkit.completion import PathCompleter, WordCompleter
 from prompt_toolkit.contrib.regular_languages.compiler import compile
-from prompt_toolkit.contrib.regular_languages.completion import \
-    GrammarCompleter
+from prompt_toolkit.contrib.regular_languages.completion import GrammarCompleter
 
 from sno_py import redirect
 

@@ -1,4 +1,4 @@
-project = { dependencies = ["pyte~=0.8.2"] }
+project = { dependencies = ["pyte~=0.8.2", "auto-walrus~=0.3.4"] }
 [tool.poetry]
 name = "snoo-py"
 version = "0.1.0"
@@ -27,6 +27,12 @@ pyte = "0.5.1"
 
 [tool.poetry.scripts]
 "sno-py" = "sno_py:main"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.8.0"
+unexport = "^0.4.0"
+ruff = "^0.6.8"
+auto-walrus = "^0.3.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -37,7 +37,7 @@ class FileType:
 
         result = sorted_scores[0][0]
         return result
-    
+
     def guess_filetype_icon(self, file_path, content=" ") -> str:
         filetype = self.guess_filetype(file_path, content)
         return get_language_icon(filetype)

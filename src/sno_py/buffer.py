@@ -1,11 +1,10 @@
 import os
-from asyncio import Event, create_task
+from asyncio import Event
 from itertools import count
 from typing import TypeVar
 
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
-from prompt_toolkit.filters import has_focus
 from sansio_lsp_client import DiagnosticSeverity, PublishDiagnostics
 
 from sno_py.lsp.completion import LanguageCompleter
@@ -21,7 +20,7 @@ class FileBuffer:
         self._name = os.path.basename(path)
         self._encoding = encoding
         self._read_only = False
-        
+
         self._index = len(self._editor.buffers) - 1 if self._editor.buffers else 0
 
         self._text = ""
@@ -62,7 +61,7 @@ class FileBuffer:
     @property
     def display_name(self) -> str:
         return self._name
-    
+
     @property
     def display_name_with_index(self) -> str:
         return f"[{self.index}] {self._name}"
@@ -71,7 +70,7 @@ class FileBuffer:
     def display_name(self, name: str) -> str:
         self._name = name
         return self._name
-    
+
     @property
     def index(self) -> int:
         return self._index
@@ -163,7 +162,7 @@ class FileBuffer:
 
     async def on_focus() -> None:
         pass
-    
+
     def reindex(self):
         for i, buffer in enumerate(self._editor.buffers):
             if buffer == self:

@@ -1,9 +1,8 @@
-from itertools import cycle
-from prompt_toolkit.application import get_app
 from prompt_toolkit.filters import has_focus
 from prompt_toolkit.key_binding import KeyBindings
 
 from sno_py.filters import Filters
+
 
 class SnoBinds(KeyBindings):
     def __init__(self, editor) -> None:
@@ -51,13 +50,13 @@ class SnoBinds(KeyBindings):
         @self.add("c-d", filter=self.editor.filters.tree_menu_toggled)
         async def close_tree(event):
             self.editor.close_tree_menu()
-            
+
         @self.add("c-x", filter=~self.editor.filters.terminal_toggled)
         async def show_terminal(event):
             self.editor.show_terminal()
-            
+
         @self.add("c-x", filter=self.editor.filters.terminal_toggled)
         async def close_terminal(event):
             self.editor.close_terminal()
-        
+
         return self
