@@ -43,14 +43,14 @@ from sno_py.fonts_utils import get_icon
 class VSep(Window):
     def __init__(self):
         super(VSep, self).__init__(
-            width=1, char="|", style="class:line class:pygments.Token"
+            width=1, char="|", style="class:pygments.Token class:container"
         )
 
 
 class HSep(Window):
     def __init__(self):
         super(HSep, self).__init__(
-            height=1, char="-", style="class:line class:pygments.Token"
+            height=1, char="-", style="class:pygments.Token class:container"
         )
 
 
@@ -204,6 +204,11 @@ class StatusBarRuller(Window):
             FormattedTextControl(
                 lambda: f" {editor.active_buffer.display_name}"
                 + ("* | " if not editor.active_buffer.saved else " | ")
+                + (
+                    f"{editor.filetype.guess_filetype_icon(editor.active_buffer._path, editor.active_buffer.buffer_inst.document.text)} "
+                    if editor.use_nerd_fonts
+                    else ""
+                )
                 + f"{editor.filetype.guess_filetype(editor.active_buffer._path, editor.active_buffer.buffer_inst.document.text)} "
                 f"- {editor.active_buffer.buffer_inst.document.cursor_position_row + 1},"
                 f"{editor.active_buffer.buffer_inst.document.cursor_position_col + 1}"
@@ -236,7 +241,12 @@ class TabControl(FormattedTextControl):
         for i, buffer in enumerate(self.editor.buffers):
             text = ""
             if self.editor.use_nerd_fonts:
-                text = self.editor.filetype.guess_filetype_icon(buffer.path) + " "
+                text = (
+                    self.editor.filetype.guess_filetype_icon(
+                        buffer.path, buffer.buffer_inst.document.text
+                    )
+                    + " "
+                )
             text += buffer.display_name
             if not buffer.saved:
                 text = text + "*"

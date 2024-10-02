@@ -10,6 +10,7 @@ import xonsh.imphooks
 from appdirs import user_cache_dir, user_config_dir, user_data_dir
 from prompt_toolkit.eventloop import run_in_executor_with_context
 from prompt_toolkit.application import Application, get_app
+from prompt_toolkit.cursor_shapes import ModalCursorShapeConfig
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.clipboard.in_memory import InMemoryClipboard
 from prompt_toolkit.clipboard.pyperclip import PyperclipClipboard
@@ -123,6 +124,7 @@ class SnoEdit(object):
         self.app = Application(
             layout=self.layout.layout,
             style=self.style,
+            cursor=ModalCursorShapeConfig(),
             clipboard=self.clipboard,
             key_bindings=self.bindings,
             full_screen=True,
