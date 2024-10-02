@@ -327,10 +327,14 @@ class LspClient:
                 triggerKind=lsp.CompletionTriggerKind.INVOKED
             ),
         )
-        for item in (
-            await self._wait_for_message_of_type(lsp.Completion)
-        ).completion_list.items:
-            yield item
+
+        if (
+            completion_list := (
+                await self._wait_for_message_of_type(lsp.Completion)
+            ).completion_list
+        ) is not None:
+            for item in completion_list.items:
+                yield item
 
     async def request_signature(self, file_path: str, line: int, character: int):
         self.lsp_client.signatureHelp(
