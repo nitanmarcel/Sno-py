@@ -192,83 +192,63 @@ class FileBuffer:
         return self._reports.get_diagnostics()
 
 
-class DebugBuffer:
-    def __init__(self, editor, encoding: str = "utf-8") -> None:
+class DebugBuffer(FileBuffer):
+    def __init__(self, editor) -> None:
         self._editor = editor
+        self._path = "*debug*"
         self._name = "*debug*"
-        self._encoding = encoding
+        self._encoding = "utf-8"
+        self._read_only = False
+
+        self._index = -1
 
         self._text = ""
 
         self._buffer = Buffer(
             multiline=True,
             document=Document(self._text, 0),
-            on_text_changed=self.text_changed,
+            read_only=False,
+            on_text_changed=self._on_text_changed,
         )
-
-        self._reports = []
-
-    @property
-    def buffer(self) -> SnooBuffer:
-        return self
 
     @property
     def _is_new(self) -> bool:
         return True
 
-    @property
-    def content(self) -> str:
-        return self._text
-
-    @property
-    def display_name(self) -> str:
-        return self._name
-
-    @property
-    def path(self) -> str:
-        return "/dev/null"
-
-    @property
-    def saved(self) -> bool:
-        return False
-
-    def focus(self) -> None:
+    async def focus(self) -> None:
         return
 
-    def unfocus(self) -> None:
+    async def unfocus(self) -> None:
         return
 
-    def save(self) -> None:
-        return False
+    async def save(self) -> bool:
+        return
 
-    def load(self) -> None:
-        pass
+    async def load(self) -> None:
+        return
+
+    async def close(self) -> None:
+        return
 
     def write(self, text: str) -> None:
-        self._text += (
-            "\n" + text.decode(self._encoding) if isinstance(text, bytes) else text
-        )
+        self._text += text + "\n"
         self._buffer.text = self._text
-
-    def flush(self) -> None:
-        pass
 
     def clear(self) -> None:
         self._text = ""
-        self._buffer.reset()
+        self._buffer.text = self._text
 
-    @property
-    def buffer_inst(self) -> Buffer:
-        return self._buffer
-
-    def text_changed(self, _) -> None:
-        if self._buffer.text != self._text:
+    def _on_text_changed(self, _):
+        if self._buffer.document.text != self._text:
             self._buffer.text = self._text
+
+    def reports(self) -> list:
+        return []
 
 
 class LogBuffer(DebugBuffer):
-    def __init__(self, editor, encoding: str = "utf-8") -> None:
-        super().__init__(editor, encoding)
+    def __init__(self, editor) -> None:
+        super().__init__(editor)
         self._name = ""
 
     def focus(self) -> None:

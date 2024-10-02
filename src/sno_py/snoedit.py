@@ -334,10 +334,19 @@ class SnoEdit(object):
 
     def select_buffer(self, index):
         if isinstance(index, str):
-            pattern = re.compile(r"\[(\d+)\]")
-            match = pattern.search(index)
-            if match:
-                index = int(match.group(1))
+            if index.endswith("*debug*"):
+                for b in self.buffers:
+                    if b.display_name.endswith("*debug*"):
+                        index = b.index
+                if isinstance(index, str):
+                    self.debug_buffer.reindex()
+                    self.buffers.append(self.debug_buffer)
+                    index = self.debug_buffer.index
+            else:
+                pattern = re.compile(r"\[(\d+)\]")
+                match = pattern.search(index)
+                if match:
+                    index = int(match.group(1))
 
         self.active_buffer = self.buffers[index]
         self.refresh_layout()
