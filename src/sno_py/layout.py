@@ -31,7 +31,6 @@ from prompt_toolkit.layout.processors import (
     TransformationInput,
 )
 from prompt_toolkit.layout.utils import explode_text_fragments
-from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.widgets.toolbars import FormattedTextToolbar, SearchToolbar
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.mouse_events import MouseEventType
@@ -360,10 +359,7 @@ class SnoLayout:
             search_buffer_control=self.search_control,
             focus_on_click=True,
             preview_search=True,
-            lexer=PygmentsLexer.from_filename(
-                self.editor.active_buffer.display_name,
-                sync_from_start=False,
-            ),
+            lexer=self.editor.active_buffer.lexer,
             include_default_input_processors=False,
             input_processors=[
                 LspReporterProcessor(self.editor),

@@ -5,6 +5,7 @@ from typing import TypeVar
 
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
+from prompt_toolkit.lexers import PygmentsLexer, SimpleLexer
 from sansio_lsp_client import DiagnosticSeverity, PublishDiagnostics
 
 from sno_py.lsp.completion import LanguageCompleter
@@ -19,6 +20,7 @@ class FileBuffer:
         self._path = os.path.abspath(path)
         self._name = os.path.basename(path)
         self._encoding = encoding
+        self._lexer = PygmentsLexer.from_filename(self._path, sync_from_start=False)
         self._read_only = False
 
         self._index = len(self._editor.buffers) - 1 if self._editor.buffers else 0
@@ -57,6 +59,10 @@ class FileBuffer:
     @property
     def path(self) -> str:
         return self._path
+
+    @property
+    def lexer(self) -> str:
+        return self._lexer
 
     @property
     def display_name(self) -> str:
@@ -197,6 +203,7 @@ class DebugBuffer(FileBuffer):
         self._editor = editor
         self._path = "*debug*"
         self._name = "*debug*"
+        self._lexer = SimpleLexer()
         self._encoding = "utf-8"
         self._read_only = False
 

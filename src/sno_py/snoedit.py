@@ -380,7 +380,7 @@ class SnoEdit(object):
                 return True
         else:
             if len(self.buffers) > 1:
-                await self.select_buffer(buffer.index)
+                self.select_buffer(buffer.index)
             self.log(get_string("not_saved"))
             return False
 
