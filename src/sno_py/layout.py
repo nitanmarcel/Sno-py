@@ -24,6 +24,8 @@ from prompt_toolkit.layout.processors import (
     HighlightSelectionProcessor,
     Processor,
     ShowTrailingWhiteSpaceProcessor,
+    DisplayMultipleCursors,
+    HighlightMatchingBracketProcessor,
     TabsProcessor,
     Transformation,
     TransformationInput,
@@ -368,6 +370,7 @@ class SnoLayout:
                 ShowTrailingWhiteSpaceProcessor(),
                 HighlightSelectionProcessor(),
                 HighlightSearchProcessor(),
+                HighlightMatchingBracketProcessor(),
                 TabsProcessor(
                     tabstop=self.editor.tabstop,
                     char1=lambda: "|"
@@ -377,6 +380,7 @@ class SnoLayout:
                     if self.editor.display_unprintable_characters
                     else " ",
                 ),
+                DisplayMultipleCursors(),
             ],
         )
 
