@@ -17,7 +17,6 @@ class ViMode(StrEnum):
 
 def get_input_mode() -> ViMode:
     input_mode = get_app().vi_state.input_mode
-    selection_state = get_app().current_buffer.selection_state
 
     vi_mode = ViMode.NORMAL
 

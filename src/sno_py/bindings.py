@@ -32,7 +32,7 @@ class SnoBinds(KeyBindings):
             await self.editor.process_command()
 
         @self.add("enter", filter=has_focus(self.editor.log_buffer))
-        async def process_command(_) -> None:
+        async def clear_log(_) -> None:
             self.editor.clear_log()
 
         @self.add("tab", filter=self.filters.vi_insert_mode)
