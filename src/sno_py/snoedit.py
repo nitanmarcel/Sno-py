@@ -3,10 +3,8 @@ import re
 import shlex
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from functools import partial
 
-import xonsh.built_ins
-import xonsh.execer
-import xonsh.imphooks
 from appdirs import user_cache_dir, user_config_dir, user_data_dir
 from prompt_toolkit.eventloop import run_in_executor_with_context
 from prompt_toolkit.application import Application, get_app
@@ -90,9 +88,7 @@ class SnoEdit(object):
         self._terminal = None
         self._color_depth = None
 
-        execer = xonsh.execer.Execer()
-        xonsh.built_ins.XSH.load(execer=execer, inherit_env=True)
-        xonsh.imphooks.install_import_hooks(execer=execer)
+        self._xsh = None
 
         self.app: Application = None
 
@@ -117,9 +113,11 @@ class SnoEdit(object):
 
     async def run(self) -> None:
         def pre_run() -> None:
+            self.app.layout = self.layout.layout
             self.app.vi_state.input_mode = InputMode.NAVIGATION
 
-        await self._load_snorc_async()
+        self._xsh = await self._load_xsh()
+        await self._load_snorc()
 
         self.app = Application(
             layout=self.layout.layout,
@@ -135,6 +133,17 @@ class SnoEdit(object):
 
         await self.active_buffer.focus()
         await self.app.run_async(pre_run=pre_run)
+
+    async def initialize(self, startup_file: str, encoding: str = "utf-8"):
+        import asyncio
+
+        async def _initialize():
+            while self.app is None:
+                await asyncio.sleep(0.01)
+            await self.create_file_buffer(startup_file, encoding=encoding)
+            self.app.vi_state.input_mode = InputMode.NAVIGATION
+
+        asyncio.create_task(_initialize())
 
     @property
     def colorscheme(self) -> str:
@@ -414,20 +423,45 @@ class SnoEdit(object):
             self.app.invalidate()
             self.app.layout = self.layout.layout
 
-    def _load_snorc(self) -> None:
+    async def _load_snorc(self) -> None:
+        from prompt_toolkit.eventloop import run_in_executor_with_context
+        from functools import partial
+
         if os.path.isfile(self.home_dir / ".snorc"):
             with open(self.home_dir / ".snorc") as rc:
                 with redirect_stdout(self.debug_buffer):
                     with redirect_stderr(self.debug_buffer):
-                        xonsh.built_ins.XSH.builtins.execx(
-                            rc.read(), glbs={"editor": self}
+                        await run_in_executor_with_context(
+                            partial(
+                                self._xsh.builtins.execx,
+                                rc.read(),
+                                glbs={"editor": self},
+                            )
                         )
 
-    async def _load_snorc_async(self) -> None:
-        await run_in_executor_with_context(self._load_snorc)
-
     def execx(self, code) -> None:
-        xonsh.built_ins.XSH.builtins.execx(code, glbs={"editor": self})
+        self._xsh.builtins.execx(code, glbs={"editor": self})
 
     async def aexecx(self, code) -> None:
         await run_in_executor_with_context(self.execx, code)
+
+    async def _load_xsh(self):
+        import xonsh.built_ins
+
+        xonsh.built_ins.resetting_signal_handle = lambda sig, f: None
+
+        import xonsh.execer
+        import xonsh.imphooks
+
+        execer = xonsh.execer.Execer()
+
+        await run_in_executor_with_context(
+            partial(xonsh.built_ins.XSH.load, execer=execer, inherit_env=True)
+        )
+
+        await run_in_executor_with_context(
+            partial(xonsh.imphooks.install_import_hooks, execer=execer)
+        )
+
+        XSH = xonsh.built_ins.XSH
+        return XSH

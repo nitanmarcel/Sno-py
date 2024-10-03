@@ -406,6 +406,8 @@ class SnoLayout:
 
     @property
     def layout(self):
+        if not get_app().is_running:
+            return Layout(Window())
         self._initialize_components()
 
         main_vsplit = VSplit([self.directory_tree, self._create_main_window()])
