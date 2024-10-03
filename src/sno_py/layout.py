@@ -68,16 +68,20 @@ class TreeItem:
 class TreeDirectoryMenu(ConditionalContainer):
     def __init__(self, editor) -> None:
         self.editor = editor
-        self.root = self.build_tree(".", is_root=True)
-        self.menu_items = self.get_menu_items()
+        self.root = None
+        self.menu_items = []
+        self.menu = None
 
-        self.menu = ptvertmenu.VertMenu(
-            items=self.menu_items, accept_handler=self.accept_handler
-        )
+        super().__init__(VSplit([]), filter=editor.filters.tree_menu_toggled)
 
-        super().__init__(
-            VSplit([self.menu, VSep()]), filter=editor.filters.tree_menu_toggled
-        )
+    def initialize(self):
+        if self.root is None:
+            self.root = self.build_tree(".", is_root=True)
+            self.menu_items = self.get_menu_items()
+            self.menu = ptvertmenu.VertMenu(
+                items=self.menu_items, accept_handler=self.accept_handler
+            )
+            self.content = VSplit([self.menu, VSep()])
 
     def build_tree(self, path, is_root=False):
         root = TreeItem(os.path.basename(path), path, True, is_root)
@@ -167,17 +171,22 @@ class TreeDirectoryMenu(ConditionalContainer):
 class TerminalSplit(ConditionalContainer):
     def __init__(self, editor):
         self.editor = editor
-        self.terminal = Terminal(
-            command=self.editor.terminal,
-            height=Dimension(preferred=20),
-            width=Dimension(),
-            done_callback=self._on_done,
-        )
+        self.terminal = None
         self.is_terminated = False
         self._is_close_requested = False
         super(TerminalSplit, self).__init__(
-            HSplit([HSep(), self.terminal]), filter=self.editor.filters.terminal_toggled
+            HSplit([]), filter=self.editor.filters.terminal_toggled
         )
+
+    def initialize(self):
+        if self.terminal is None or self.is_terminated:
+            self.terminal = Terminal(
+                command=self.editor.terminal,
+                height=Dimension(preferred=20),
+                width=Dimension(),
+                done_callback=self._on_done,
+            )
+            self.content = HSplit([HSep(), self.terminal])
 
     def _on_done(self):
         if not self._is_close_requested:
@@ -187,8 +196,9 @@ class TerminalSplit(ConditionalContainer):
 
     def kill_terminal(self):
         self._is_close_requested = True
-        self.terminal.process.write_input("exit")
-        self.terminal.process.write_key(Keys.Enter)
+        if self.terminal:
+            self.terminal.process.write_input("exit")
+            self.terminal.process.write_key(Keys.Enter)
 
 
 class StatusBar(FormattedTextToolbar):
@@ -336,16 +346,10 @@ class SnoLayout:
         self.search_toolbar = None
         self.search_control = None
         self.status_bar = None
-        self.directory_tree = None
-        self.terminal = None
+        self.directory_tree = TreeDirectoryMenu(editor)
+        self.terminal = TerminalSplit(editor)
         self.custom_hsplits = []
         self.custom_vsplits = []
-
-    def add_hsplit(self, content):
-        self.custom_hsplits.append(content)
-
-    def add_vsplit(self, content):
-        self.custom_vsplits.append(content)
 
     def _initialize_components(self):
         if not self.search_toolbar:
@@ -358,10 +362,6 @@ class SnoLayout:
             self.status_bar = VSplit(
                 [StatusBar(self.editor), StatusBarRuller(self.editor)]
             )
-        if not self.directory_tree:
-            self.directory_tree = TreeDirectoryMenu(self.editor)
-        if not self.terminal or self.terminal.is_terminated:
-            self.terminal = TerminalSplit(self.editor)
 
     def _create_buffer_control(self):
         return BufferControl(
