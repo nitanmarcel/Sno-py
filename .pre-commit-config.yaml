@@ -11,6 +11,8 @@ repos:
       # Ruff version.
       rev: v0.6.8
       hooks:
+        - id: ruff
+          args: [ --fix ]
         - id: ruff-format
     - repo: https://github.com/MarcoGorelli/auto-walrus
       rev: 0.3.4
