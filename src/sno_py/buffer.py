@@ -3,6 +3,7 @@ from asyncio import Event
 from itertools import count
 from typing import TypeVar
 
+from prompt_toolkit.application import get_app
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.document import Document
 from prompt_toolkit.lexers import SimpleLexer
@@ -91,20 +92,7 @@ class FileBuffer:
         return self._read_only
 
     async def focus(self) -> None:
-        if (
-            lsp_client := await self._editor.lsp.get_client(self._path, os.getcwd())
-        ) is not None and self._lsp_client is None:
-            self._lsp_client = lsp_client
-            self._lsp_client.open_document(
-                self._editor.filetype.guess_filetype(
-                    self._path, self._buffer.document.text
-                ),
-                self._path,
-                self._text,
-            )
-            self._lsp_client.add_notification_handler(
-                of_type=PublishDiagnostics, func=self.listen_for_reports
-            )
+        self._init_lsp_client()
 
     async def unfocus(self) -> None:
         if self._lsp_client is None:
@@ -136,23 +124,27 @@ class FileBuffer:
                 with open(self._path, "r") as f:
                     self._text = f.read()
                     self._buffer.text = self._text
-        if (
-            lsp_client := await self._editor.lsp.get_client(self._path, os.getcwd())
-        ) is not None:
-            self._lsp_client = lsp_client
-            self._lsp_client.open_document(
-                self._editor.filetype.guess_filetype(
-                    self._path, self._buffer.document.text
-                ),
-                self._path,
-                self._text,
-            )
-            self._lsp_client.add_notification_handler(
-                of_type=PublishDiagnostics, func=self.listen_for_reports
-            )
-            self._lsp_client.remove_notification_handler(
-                of_type=PublishDiagnostics, func=self.listen_for_reports
-            )
+
+        self._init_lsp_client()
+
+    def _init_lsp_client(self):
+        async def _init_lsp_client_real():
+            if (
+                lsp_client := await self._editor.lsp.get_client(self._path, os.getcwd())
+            ) is not None:
+                self._lsp_client = lsp_client
+                self._lsp_client.open_document(
+                    self._editor.filetype.guess_filetype(
+                        self._path, self._buffer.document.text
+                    ),
+                    self._path,
+                    self._text,
+                )
+                self._lsp_client.add_notification_handler(
+                    of_type=PublishDiagnostics, func=self.listen_for_reports
+                )
+
+        return get_app().create_background_task(_init_lsp_client_real())
 
     async def close(self):
         if self._lsp_client is not None:
