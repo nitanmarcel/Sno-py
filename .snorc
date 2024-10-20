@@ -1,0 +1,40 @@
+from typing import TYPE_CHECKING
+
+# containers as explained below, have no idea about their imports, or definitions. So we only use typehints and rely on container["X"] to load and import the target instance/container.
+if TYPE_CHECKING:
+    from sno_py.di import container, Container
+    from sno_py.config import Config
+    from sno_py.lsp.manager import LanguageClientManager
+
+container: "Container" = container # `container` is automatically defined as global
+config: "Config" = container["Config"] # define config as `Config` instance retrived from the di container
+
+config.colorscheme = "default-dark" # set color scheme
+config.color_depth = 24 # Enable 24 bits color depth
+config.show_line_numbers = True # Enable line numbers
+config.show_relative_numbers = True # Enable relative numbers
+config.expandtabs = True # Enable expandtabs
+config.tabstop = 4 # Set numbers of tabs to 4 spaces
+config.show_unprintable_characters = True # Show leading white spaces
+config.use_system_clipboard = True # Use system clipboard
+
+
+# A little info about containers.
+## A container holds a class, instance of a class from sno_py. As defined in __main__.py.
+## They are splited in 2 types:
+### Singleton: They are initialized once and the same instance is re-used.
+### Factory: They are initialized each time is reused and unlike Singletons they need to manually be called: container["X"](...).
+## Every container is lazy loaded. Meaning the app doesn't know about any of it's imports or definitions only after used once.
+## This also make them modular in the sense that they can be replaced with custom instances without touching the main code.
+## For example. Given a custom class `MyConfig`, the Config container can be easily replaced with container["Config"] = "my.module.MyConfig"; container["MyConfig"] = Singleton.
+## First we define the new module import for the Config container (note that this will need that the path to my.module to be added to the sys.path)
+## Then we define the type for the container as described above: Singleton or Factory.
+
+
+# Add a lsp server
+lsp_manager: "LanguageClientManager" = container["LanguageClientManager"]
+lsp_manager.add_server(
+    extensions=[".py", ".pyi"],
+    command="/home/nitanmarcel/.rye/shims/pylsp",
+    args=[]
+)
