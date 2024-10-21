@@ -7,7 +7,6 @@ from aiopathlib import AsyncPath
 
 from sno_py.di import container
 
-
 if TYPE_CHECKING:
     from sno_py.editor import Editor
     from sno_py.filetypes.filetypes import FileType

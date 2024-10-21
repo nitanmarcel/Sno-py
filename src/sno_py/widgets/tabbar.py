@@ -10,6 +10,8 @@ from sno_py.di import container
 
 if TYPE_CHECKING:
     from sno_py.window import EditorWindow, WindowManager
+    from sno_py.filetypes.filetypes import FileType
+    from sno_py.config import Config
 
 
 class _TabControl(FormattedTextControl):
@@ -28,6 +30,8 @@ class _TabControl(FormattedTextControl):
         """
         self.pwindow: Union["EditorWindow", None] = None
         self.wm: "WindowManager" = wm
+        self.ft: Union["FileType", None] = None
+        self.config: Union["Config", None] = None
         super(_TabControl, self).__init__(self._get_tokens, style="class:container")
 
     def _set_pwindow(self) -> None:
@@ -74,10 +78,19 @@ class _TabControl(FormattedTextControl):
             list: A list of tokens used for rendering the tab control.
         """
         self._set_pwindow()
+        if self.ft is None:
+            self.ft = container["FileType"]
+        if self.config is None:
+            self.config = container["Config"]
         result: list = []
         selected_index: int = self.pwindow.get_active_buffer_index()
         for i, buff in enumerate(self.pwindow.buffers):
-            text: str = buff.get_display_name()
+            text: str = ""
+            if self.config.use_nerd_icons:
+                icon: str = self.ft.guess_icon_for_file(buff.location, buff.buffer.text)
+                text += f"{icon} "
+
+            text += buff.get_display_name()
             if buff.changed:
                 text += "*"
             if i == selected_index:

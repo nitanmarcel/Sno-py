@@ -2,7 +2,7 @@ import os
 import re
 from typing import Literal, Union
 
-from sno_py.filetypes.defaults import filetype_defaults
+from sno_py.filetypes.defaults import filetype_defaults, filetype_icons
 
 
 class FileType:
@@ -37,8 +37,15 @@ class FileType:
         result = sorted_scores[0][0]
         return result
 
-    @classmethod
-    def add_filetype(cls, filetype, filename_pattern, content_pattern=None):
+    def guess_icon_for_file(self, file_path: str, content: str) -> str:
+        filetype = self.guess_filetype(file_path, content)
+        return self.get_icon_for_filetype(filetype)
+
+    @staticmethod
+    def get_icon_for_filetype(filetype: str) -> str:
+        return filetype_icons.get(f"seti-{filetype}", filetype_icons.get("seti-text"))
+
+    def add_filetype(self, filetype, filename_pattern, content_pattern=None):
         new_filetype = {
             filetype: {
                 "pattern": filename_pattern,
@@ -48,13 +55,12 @@ class FileType:
         if content_pattern:
             new_filetype[filetype]["file_pattern"] = content_pattern
 
-        cls.defaults.append(new_filetype)
+        self.defaults.append(new_filetype)
 
-    @classmethod
     def _calculate_score(self, pattern, target) -> int:
         if pattern is None or not target:
             return 0
         if isinstance(pattern, list):
-            return max(FileType._calculate_score(p, target) for p in pattern)
+            return max(self._calculate_score(p, target) for p in pattern)
         match = re.search(pattern, target)
         return len(match.group()) if match else 0

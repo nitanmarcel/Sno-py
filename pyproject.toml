@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "snoo-py"
-version = "2.0.1"
+version = "2.0.2"
 description = "A personal code editor I've written for myself. Because why not?"
 authors = ["Marcel Alexandru Nitan <nitan.marcel@protonmail.com>"]
 license = "MIT"
