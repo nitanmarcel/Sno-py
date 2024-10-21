@@ -13,6 +13,8 @@ from prompt_toolkit.layout import (
 from prompt_toolkit.layout.controls import BufferControl
 from prompt_toolkit.layout.menus import CompletionsMenu
 from prompt_toolkit.layout.processors import Processor
+from prompt_toolkit.layout.margins import ConditionalMargin, NumberedMargin
+from prompt_toolkit.filters import Condition
 from prompt_toolkit.widgets import HorizontalLine, VerticalLine
 
 from sno_py.di import container
@@ -22,6 +24,7 @@ if TYPE_CHECKING:
     from sno_py.editor import Editor
     from sno_py.buffer import EditorBuffer
     from sno_py.storage.bars import BarsStorage
+    from sno_py.config import Config
 
 
 class EditorWindow:
@@ -59,7 +62,21 @@ class EditorWindow:
             input_processors=self.input_processors,
             include_default_input_processors=False,
         )
-        self.window: Window = Window(self.buffer_control, style="class:background")
+
+        config: "Config" = container["Config"]
+        self.window: Window = Window(
+            self.buffer_control,
+            style="class:background",
+            left_margins=[
+                ConditionalMargin(
+                    margin=NumberedMargin(
+                        relative=Condition(lambda: config.show_relative_numbers),
+                        display_tildes=True,
+                    ),
+                    filter=Condition(lambda: config.show_line_numbers),
+                )
+            ],
+        )
 
         self._bars_store: "BarsStorage" = container["BarsStorage"]
         self.created_top_bars: List[Container] = [
