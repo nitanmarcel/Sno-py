@@ -1,8 +1,12 @@
 import sys
 import asyncio
-import uvloop
+try:
+    import uvloop
+    has_uvloop: bool = True
+except (ImportError, ModuleNotFoundError):
+    has_uvloop = False
 import argparse
-import aiopathlib
+import aiopath
 from typing import TYPE_CHECKING
 
 from sno_py.di import Factory, Singleton, container
@@ -107,7 +111,7 @@ async def entry():
 
     editor: "Editor" = container["Editor"]
 
-    home = aiopathlib.AsyncPath.home()
+    home = await aiopath.AsyncPath.home()
     snorc_py = home / ".snorc"
     snorc_xsh = home / ".snorc.xsh"
 
@@ -125,11 +129,12 @@ async def entry():
 def main():
     """Main entry point for the application."""
     register_components()
-    if sys.version_info >= (3, 11):
+    if sys.version_info >= (3, 11) and has_uvloop:
         with asyncio.Runner(loop_factory=uvloop.new_event_loop) as runner:
             runner.run(entry())
     else:
-        uvloop.install()
+        if has_uvloop:
+            uvloop.install()
         asyncio.run(entry())
 
 
