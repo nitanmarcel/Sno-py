@@ -81,7 +81,7 @@ class LspCompleter(Completer):
 
         signature: Union["SignatureInformation", None] = (
             await lsp.request_signature(
-                file_path=str(buff.location),
+                file_path=str(buff.abs_location),
                 line=buff.buffer.document.cursor_position_row,
                 character=buff.buffer.document.cursor_position_col,
             )
@@ -99,7 +99,7 @@ class LspCompleter(Completer):
         else:
             completion: "CompletionItem"
             async for completion in lsp.request_completion(
-                file_path=buff.location,
+                file_path=str(buff.abs_location),
                 line=buff.buffer.document.cursor_position_row,
                 character=buff.buffer.document.cursor_position_col,
             ):

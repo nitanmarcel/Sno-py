@@ -3,7 +3,7 @@ from itertools import count
 from prompt_toolkit.buffer import Buffer, Document
 from prompt_toolkit.application import get_app
 from sansio_lsp_client import PublishDiagnostics, DiagnosticSeverity
-from aiopathlib import AsyncPath
+from anyio import Path
 
 from sno_py.di import container
 
@@ -22,7 +22,7 @@ class EditorBuffer:
 
     Attributes:
         editor (Editor): Reference to the editor instance.
-        location (AsyncPath): The file location associated with the buffer.
+        location (Path): The file location associated with the buffer.
         text (str): The current text content of the buffer.
         version (count[int]): A version counter for document changes.
         is_new (bool): Flag indicating if the buffer is new (unsaved).
@@ -40,12 +40,13 @@ class EditorBuffer:
             text (str): Initial text content for the buffer.
         """
         self.editor: "Editor" = container["Editor"]
-        self.location: AsyncPath = AsyncPath(location).absolute()
+        self.location: Path = Path(location)
+        self.abs_location: Union[Path, None] = None
         self.text: str = text
         self.version: count[int] = count()
         self.is_new: bool = True
         lexer_cls: "TreeSitterLexer" = container["TreeSitterLexer"]
-        self.lexer: Lexer = lexer_cls.from_file(self.location, self.text)
+        self.lexer: Lexer = lexer_cls.from_file(str(self.location), self.text)
         self.lsp: Union["LspClient", None] = None
         self.lsp_reports: list[dict[str, Any]] = []
 
@@ -64,10 +65,12 @@ class EditorBuffer:
             self.buffer.set_document(Document(self.text, 0))
             self.is_new = False
             self.reload_document()
+            self.abs_location = await self.get_absolute_location()
         except FileNotFoundError:
             self.text = ""
             self.buffer.set_document(Document(self.text, 0))
             self.is_new = True
+            self.abs_location = await self.get_absolute_location()
             self.reload_document()
         except IOError as e:
             raise ValueError(f"Error reading file: {e}")
@@ -80,6 +83,8 @@ class EditorBuffer:
             await self.location.write_text(self.buffer.text)
             self.is_new = False
             self.reload_document()
+            if self.lsp is not None:
+                self.lsp.save_document(document_path=str(self.abs_location))
         except IOError as e:
             raise ValueError(f"Error writing file: {e}")
 
@@ -87,13 +92,13 @@ class EditorBuffer:
         """Initialize the Language Server Protocol (LSP) client for the buffer."""
         if self.lsp is None:
             manager: "LanguageClientManager" = container["LanguageClientManager"]
-            workdir: AsyncPath = AsyncPath.cwd()
+            workdir: Path = await Path.cwd()
             self.lsp = await manager.get_client(str(self.location), str(workdir))
             if self.lsp is not None:
                 ft: "FileType" = container["FileType"]
                 self.lsp.open_document(
-                    ft.guess_filetype(self.location, self.buffer.text),
-                    str(self.location.absolute()),
+                    ft.guess_filetype(self.abs_location, self.buffer.text),
+                    str(self.abs_location),
                     self.buffer.text,
                 )
 
@@ -119,11 +124,16 @@ class EditorBuffer:
         """Notify the LSP server about changes in the document."""
         if self.lsp is not None:
             self.lsp.change_document(
-                file_path=str(self.location),
+                file_path=str(self.abs_location),
                 version=next(self.version),
                 text=self.buffer.text,
                 want_diagnostics=True,
             )
+
+    def notify_lsp_document_close(self) -> None:
+        """Notify the LSP server that the current document has been closed."""
+        if self.lsp is not None:
+            self.lsp.close_document(file_path=str(self.abs_location))
 
     def get_display_name(self, short=True) -> str:
         """Get the display name for the buffer.
@@ -136,7 +146,17 @@ class EditorBuffer:
         """
         if short:
             return self.location.name
-        return str(self.location.absolute())
+        return str(self.location)
+
+    async def get_absolute_location(self) -> Path:
+        """Get absolute location path in an async"""
+        if self.abs_location is None:
+            self.abs_location = (
+                await self.location.absolute()
+                if not (self.location.is_absolute())
+                else self.location
+            )
+        return self.abs_location
 
     def reload_document(self) -> None:
         """Reload the buffer text from the current buffer content."""

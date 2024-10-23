@@ -254,6 +254,7 @@ class CommandHandler:
                     return
 
                 active_window.buffers.remove(active_buffer)
+                active_buffer.notify_lsp_document_close()
 
                 if active_window.buffers:
                     active_window.switch_to_buffer(active_window.buffers[0])
@@ -332,6 +333,7 @@ class CommandHandler:
                 )
                 return
             editor.wm.active_window.buffers.remove(active_buffer)
+            active_buffer.notify_lsp_document_close()
             if editor.wm.active_window.buffers:
                 editor.wm.active_window.switch_to_buffer(
                     editor.wm.active_window.buffers[0]
