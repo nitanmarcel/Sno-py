@@ -61,7 +61,10 @@ class EditorBuffer:
     async def read(self) -> None:
         """Read text from the specified file location into the buffer."""
         try:
-            self.text = await self.location.read_text()
+            try:
+                self.text = await self.location.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                self.text = await self.location.read_text(encoding="latin-1")
             self.buffer.set_document(Document(self.text, 0))
             self.is_new = False
             self.reload_document()
