@@ -3,7 +3,7 @@ from itertools import count
 from prompt_toolkit.buffer import Buffer, Document
 from prompt_toolkit.application import get_app
 from sansio_lsp_client import PublishDiagnostics, DiagnosticSeverity
-from aiopath import AsyncPath
+from aiopathlib import AsyncPath
 
 from sno_py.di import container
 
@@ -40,12 +40,12 @@ class EditorBuffer:
             text (str): Initial text content for the buffer.
         """
         self.editor: "Editor" = container["Editor"]
-        self.location: AsyncPath = AsyncPath(location)
+        self.location: AsyncPath = AsyncPath(location).absolute()
         self.text: str = text
         self.version: count[int] = count()
         self.is_new: bool = True
         lexer_cls: "TreeSitterLexer" = container["TreeSitterLexer"]
-        self.lexer: Lexer = lexer_cls.from_file(str(self.location), self.text)
+        self.lexer: Lexer = lexer_cls.from_file(self.location, self.text)
         self.lsp: Union["LspClient", None] = None
         self.lsp_reports: list[dict[str, Any]] = []
 
@@ -87,13 +87,13 @@ class EditorBuffer:
         """Initialize the Language Server Protocol (LSP) client for the buffer."""
         if self.lsp is None:
             manager: "LanguageClientManager" = container["LanguageClientManager"]
-            workdir: AsyncPath = await AsyncPath.cwd()
+            workdir: AsyncPath = AsyncPath.cwd()
             self.lsp = await manager.get_client(str(self.location), str(workdir))
             if self.lsp is not None:
                 ft: "FileType" = container["FileType"]
                 self.lsp.open_document(
-                    ft.guess_filetype(str(self.location), self.buffer.text),
-                    str(await self.location),
+                    ft.guess_filetype(self.location, self.buffer.text),
+                    str(self.location.absolute()),
                     self.buffer.text,
                 )
 
@@ -136,17 +136,11 @@ class EditorBuffer:
         """
         if short:
             return self.location.name
-        return str(self.location)
+        return str(self.location.absolute())
 
     def reload_document(self) -> None:
         """Reload the buffer text from the current buffer content."""
         self.text = self.buffer.text
-
-    async def close_document(self) -> None:
-        "Tell this bufer was closed. Used mainly to send the close request to the lsp server"
-        if self.lsp:
-            await self.lsp.close_document(str(self.location))
-            self.man
 
     @property
     def changed(self) -> bool:

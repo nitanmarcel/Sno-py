@@ -254,7 +254,6 @@ class CommandHandler:
                     return
 
                 active_window.buffers.remove(active_buffer)
-                await active_buffer.close_document()
 
                 if active_window.buffers:
                     active_window.switch_to_buffer(active_window.buffers[0])
@@ -333,7 +332,6 @@ class CommandHandler:
                 )
                 return
             editor.wm.active_window.buffers.remove(active_buffer)
-            await active_buffer.close_document()
             if editor.wm.active_window.buffers:
                 editor.wm.active_window.switch_to_buffer(
                     editor.wm.active_window.buffers[0]

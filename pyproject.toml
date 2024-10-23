@@ -16,21 +16,18 @@ include = [
 [tool.poetry.dependencies]
 python = "^3.10"
 appdirs = "^1.4.4"
-aiopath = [    
-    { git = "https://github.com/alexdelorenzo/aiopath", branch = "support-3.12", python = ">=3.12" },
-    { git = "https://github.com/alexdelorenzo/aiopath", branch = "support-3.11", python = ">=3.11,<3.12" },
-    { git = "https://github.com/alexdelorenzo/aiopath", branch = "Python-3.10", python = ">=3.10,<3.11" },
-]
 Markdown = "^3.7"
 prompt-toolkit = "^3.0.48"
+ptterm = {git = "https://github.com/prompt-toolkit/ptterm"}
+ptvertmenu = {git = "https://github.com/lpenz/ptvertmenu"}
 pyte = "0.5.1"
 sansio-lsp-client = "^0.12.0"
 typing-extensions = "^4.12.2"
 xonsh = "^0.18.3"
 attrs = "^24.2.0"
+aiopathlib = "^0.5.0"
 tree-sitter = "^0.23.1"
-uvloop = {version = "^0.21.0", platform = "linux || darwin"}
-pyperclip = "^1.9.0"
+uvloop = "^0.21.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.0.0"
